@@ -21,6 +21,13 @@ type AuthContextValue = {
   account: CachedAccount | null;
   /** 启动时恢复登录态期间为 true */
   loading: boolean;
+  /** 邮箱 + 密码登录 */
+  signInWithPassword: (email: string, password: string) => Promise<void>;
+  /** 邮箱 + 密码注册；needsEmailConfirmation 为 true 表示还需先确认邮箱 */
+  signUpWithPassword: (
+    email: string,
+    password: string
+  ) => Promise<{ needsEmailConfirmation: boolean }>;
   /** 发送邮箱登录验证码 */
   sendEmailOtp: (email: string) => Promise<void>;
   /** 校验邮箱验证码并建立会话 */
@@ -94,6 +101,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const signInWithPassword = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  }, []);
+
+  const signUpWithPassword = useCallback(async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) throw error;
+    // 项目关闭邮箱确认时会直接返回会话；开启时 session 为空，需要用户先确认邮箱
+    return { needsEmailConfirmation: !data.session };
+  }, []);
+
   const sendEmailOtp = useCallback(async (email: string) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -131,13 +150,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: session?.user ?? null,
       account,
       loading,
+      signInWithPassword,
+      signUpWithPassword,
       sendEmailOtp,
       verifyEmailOtp,
       sendPhoneOtp,
       verifyPhoneOtp,
       signOut,
     }),
-    [session, account, loading, sendEmailOtp, verifyEmailOtp, sendPhoneOtp, verifyPhoneOtp, signOut]
+    [
+      session,
+      account,
+      loading,
+      signInWithPassword,
+      signUpWithPassword,
+      sendEmailOtp,
+      verifyEmailOtp,
+      sendPhoneOtp,
+      verifyPhoneOtp,
+      signOut,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

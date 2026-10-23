@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -10,121 +10,60 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../src/auth/AuthContext';
 import { describeAuthError } from '../src/auth/errors';
 import { colors, fonts } from '../src/theme';
 
-type Method = 'phone' | 'email';
-
-type Phase = 'input' | 'code';
+type Mode = 'login' | 'register';
 
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
-const CN_MOBILE_PATTERN = /^1[3-9]\d{9}$/;
-
-// 统一转成 Supabase 需要的 E.164 格式（本项目默认中国大陆手机号）
-function normalizePhone(raw: string): string | null {
-  const digits = raw.replace(/\D/g, '').replace(/^86/, '');
-  if (!CN_MOBILE_PATTERN.test(digits)) return null;
-  return `+86${digits}`;
-}
+const MIN_PASSWORD_LENGTH = 6;
 
 export default function LoginScreen() {
-  const { sendEmailOtp, verifyEmailOtp, sendPhoneOtp, verifyPhoneOtp } = useAuth();
+  const { signInWithPassword, signUpWithPassword } = useAuth();
 
-  const [method, setMethod] = useState<Method | null>(null);
-  const [phase, setPhase] = useState<Phase>('input');
-  const [identifier, setIdentifier] = useState('');
-  const [code, setCode] = useState('');
+  const [mode, setMode] = useState<Mode>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [countdown, setCountdown] = useState(0);
 
-  // 重新获取验证码的倒计时
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const timer = setTimeout(() => setCountdown((value) => value - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [countdown]);
-
-  function chooseMethod(next: Method) {
-    setMethod(next);
-    setPhase('input');
-    setIdentifier('');
-    setCode('');
+  function toggleMode() {
+    setMode((value) => (value === 'login' ? 'register' : 'login'));
     setError(null);
     setNotice(null);
-    setCountdown(0);
   }
 
-  function resetMethod() {
-    setMethod(null);
-    setPhase('input');
-    setIdentifier('');
-    setCode('');
-    setError(null);
-    setNotice(null);
-    setCountdown(0);
-  }
-
-  async function handleSend() {
+  async function handleSubmit() {
     if (busy) return;
-    const value = identifier.trim();
 
-    if (method === 'email') {
-      if (!EMAIL_PATTERN.test(value)) {
-        setError('请输入正确的邮箱地址');
-        return;
-      }
-    } else {
-      if (!normalizePhone(value)) {
-        setError('请输入正确的中国大陆手机号');
-        return;
-      }
+    const emailValue = email.trim();
+    if (!EMAIL_PATTERN.test(emailValue)) {
+      setError('请输入正确的邮箱地址');
+      return;
     }
-
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      if (method === 'email') {
-        await sendEmailOtp(value);
-        setNotice('验证码已发送，请到邮箱查收（若没看到，记得看一眼垃圾箱）');
-      } else {
-        await sendPhoneOtp(normalizePhone(value) as string);
-        setNotice('验证码已发送，请留意短信');
-      }
-      setPhase('code');
-      setCountdown(60);
-    } catch (err) {
-      setError(describeAuthError(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleVerify() {
-    if (busy) return;
-    const value = identifier.trim();
-    const token = code.trim();
-
-    if (!/^\d{6}$/.test(token)) {
-      setError('请输入 6 位数字验证码');
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`密码至少 ${MIN_PASSWORD_LENGTH} 位`);
       return;
     }
 
     setBusy(true);
     setError(null);
+    setNotice(null);
     try {
-      if (method === 'email') {
-        await verifyEmailOtp(value, token);
+      if (mode === 'login') {
+        await signInWithPassword(emailValue, password);
+        // 登录态更新后，根路由守卫会自动切到首页
       } else {
-        await verifyPhoneOtp(normalizePhone(value) as string, token);
+        const { needsEmailConfirmation } = await signUpWithPassword(emailValue, password);
+        if (needsEmailConfirmation) {
+          setNotice('注册成功，请先到邮箱完成确认，再回来登录');
+          setMode('login');
+        }
+        // 项目关闭邮箱确认时，注册即登录，守卫会自动切到首页
       }
-      // 登录成功后进入首页（登录页会被路由守卫移除）
-      router.replace('/(tabs)');
     } catch (err) {
       setError(describeAuthError(err));
     } finally {
@@ -132,12 +71,8 @@ export default function LoginScreen() {
     }
   }
 
-  function soonWechat() {
-    Alert.alert('即将开放', '微信登录需要微信开放平台资质，资质就绪后接入。');
-  }
-
-  function soonApple() {
-    Alert.alert('即将开放', 'Apple 登录仅用于 iOS，需要 Apple Developer 账号，账号就绪后接入。');
+  function handleForgotPassword() {
+    Alert.alert('找回密码', '邮件服务尚未配置，暂时无法通过邮件重置密码。请先重新注册或联系管理员。');
   }
 
   return (
@@ -151,81 +86,51 @@ export default function LoginScreen() {
           contentContainerStyle={styles.bodyContent}
           keyboardShouldPersistTaps="handled"
         >
-        <Text style={styles.title}>心意管家</Text>
-        <Text style={styles.subtitle}>登录 · 注册</Text>
-        <Text style={styles.lead}>
-          登录只用于识别你的身份。心意数据永远留在本机，不会上传、不会随账号同步。
-        </Text>
-
-        {method === null ? (
-          <>
-            <Text style={styles.secTitle}>选择登录方式</Text>
-
-            <Pressable style={styles.method} onPress={() => chooseMethod('phone')}>
-              <View style={styles.methodMain}>
-                <Text style={styles.methodLabel}>手机号 + 验证码</Text>
-                <Text style={styles.methodHint}>短信通道开通后可用</Text>
+          {/* 印章式 Logo */}
+          <View style={styles.hero}>
+            <View style={styles.sealOuter}>
+              <View style={styles.sealInner}>
+                <Text style={styles.sealTop}>心意管家</Text>
+                <Text style={styles.sealMain}>心意</Text>
+                <Text style={styles.sealBottom}>已备好</Text>
               </View>
-              <Text style={styles.methodArrow}>›</Text>
-            </Pressable>
+            </View>
+            <Text style={styles.brand}>心意管家</Text>
+            <Text style={styles.tagline}>重要的人，和他们的日子，都替你记着。</Text>
+            <Text style={styles.tagline}>日子到来之前，话、礼物、贺卡已替你备好。</Text>
+          </View>
 
-            <Pressable style={styles.method} onPress={() => chooseMethod('email')}>
-              <View style={styles.methodMain}>
-                <Text style={styles.methodLabel}>邮箱 + 验证码</Text>
-                <Text style={styles.methodHint}>现在就能使用</Text>
-              </View>
-              <Text style={styles.methodArrow}>›</Text>
-            </Pressable>
-
-            <Pressable style={styles.method} onPress={soonWechat}>
-              <View style={styles.methodMain}>
-                <Text style={styles.methodLabel}>使用微信登录</Text>
-                <Text style={styles.methodHint}>需要微信开放平台资质，即将开放</Text>
-              </View>
-              <Text style={styles.methodArrow}>›</Text>
-            </Pressable>
-
-            <Pressable style={styles.method} onPress={soonApple}>
-              <View style={styles.methodMain}>
-                <Text style={styles.methodLabel}>使用 Apple 登录</Text>
-                <Text style={styles.methodHint}>仅 iOS，即将开放</Text>
-              </View>
-              <Text style={styles.methodArrow}>›</Text>
-            </Pressable>
-          </>
-        ) : (
-          <View style={styles.panel}>
-            <Text style={styles.panelTitle}>
-              {method === 'email' ? '邮箱验证码登录' : '手机号验证码登录'}
-            </Text>
-
+          <View style={styles.form}>
+            <Text style={styles.label}>邮箱</Text>
             <TextInput
-              style={[styles.input, phase === 'code' && styles.inputReadonly]}
-              value={identifier}
-              onChangeText={setIdentifier}
-              editable={phase === 'input' && !busy}
-              placeholder={method === 'email' ? '你的邮箱地址' : '你的手机号'}
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              editable={!busy}
+              placeholder="you@example.com"
               placeholderTextColor={colors.ink3}
-              keyboardType={method === 'email' ? 'email-address' : 'phone-pad'}
+              keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
-              autoComplete={method === 'email' ? 'email' : 'tel'}
+              autoComplete="email"
+              returnKeyType="next"
             />
 
-            {phase === 'code' ? (
-              <TextInput
-                style={styles.input}
-                value={code}
-                onChangeText={setCode}
-                placeholder="6 位验证码"
-                placeholderTextColor={colors.ink3}
-                keyboardType="number-pad"
-                maxLength={6}
-                autoFocus
-                returnKeyType="done"
-                onSubmitEditing={handleVerify}
-              />
-            ) : null}
+            <Text style={styles.label}>密码</Text>
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              editable={!busy}
+              placeholder={`至少 ${MIN_PASSWORD_LENGTH} 位`}
+              placeholderTextColor={colors.ink3}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              returnKeyType="done"
+              onSubmitEditing={handleSubmit}
+            />
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
             {notice ? <Text style={styles.notice}>{notice}</Text> : null}
@@ -236,31 +141,31 @@ export default function LoginScreen() {
                 busy && styles.btnDisabled,
                 pressed && styles.pressed,
               ]}
-              onPress={phase === 'input' ? handleSend : handleVerify}
+              onPress={handleSubmit}
               disabled={busy}
             >
               <Text style={styles.btnPrimaryText}>
-                {busy ? '请稍候…' : phase === 'input' ? '获取验证码' : '登录'}
+                {busy ? '请稍候…' : mode === 'login' ? '开始使用' : '注册并登录'}
               </Text>
             </Pressable>
 
-            {phase === 'code' ? (
-              <Pressable
-                style={styles.btnLinkWrap}
-                onPress={handleSend}
-                disabled={busy || countdown > 0}
-              >
-                <Text style={[styles.btnLink, countdown > 0 && styles.btnLinkDisabled]}>
-                  {countdown > 0 ? `${countdown} 秒后可重新获取` : '重新获取验证码'}
-                </Text>
-              </Pressable>
+            {mode === 'register' ? (
+              <Text style={styles.hint}>注册即可使用，无需邮箱验证</Text>
             ) : null}
 
-            <Pressable style={styles.btnLinkWrap} onPress={resetMethod} disabled={busy}>
-              <Text style={styles.btnLink}>换一种登录方式</Text>
-            </Pressable>
+            <View style={styles.links}>
+              <Pressable onPress={handleForgotPassword} hitSlop={8}>
+                <Text style={styles.linkMuted}>忘记密码？</Text>
+              </Pressable>
+              <Pressable onPress={toggleMode} hitSlop={8} disabled={busy}>
+                <Text style={styles.link}>
+                  {mode === 'login' ? '还没有账号？注册' : '已有账号？登录'}
+                </Text>
+              </Pressable>
+            </View>
           </View>
-        )}
+
+          <Text style={styles.footnote}>登录只识别身份，心意数据仍只存在这台设备。</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -270,68 +175,83 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper },
   body: { flex: 1 },
-  bodyContent: { paddingHorizontal: 22, paddingTop: 28, paddingBottom: 32 },
-  title: { fontFamily: fonts.hand, fontSize: 30, color: colors.ink },
-  subtitle: { fontSize: 13, color: colors.ink2, marginTop: 4, marginBottom: 16 },
-  lead: { fontSize: 14, color: colors.ink2, lineHeight: 22 },
+  bodyContent: { flexGrow: 1, paddingHorizontal: 28, paddingTop: 44, paddingBottom: 28 },
 
-  secTitle: { fontFamily: fonts.hand, fontSize: 17, color: colors.ink, marginTop: 26, marginBottom: 8 },
-
-  method: {
-    flexDirection: 'row',
+  hero: { alignItems: 'center' },
+  sealOuter: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    borderWidth: 1.5,
+    borderColor: colors.camellia,
+    backgroundColor: colors.paper2,
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 15,
-    paddingHorizontal: 16,
-    marginTop: 10,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.paper2,
+    justifyContent: 'center',
   },
-  methodMain: { flex: 1, minWidth: 0 },
-  methodLabel: { fontSize: 15, color: colors.ink },
-  methodHint: { fontSize: 12, color: colors.ink2, marginTop: 2 },
-  methodArrow: { fontSize: 22, color: colors.ink3 },
+  sealInner: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    borderWidth: 1,
+    borderColor: colors.rose,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sealTop: { fontSize: 9, color: colors.ink2, letterSpacing: 2 },
+  sealMain: { fontFamily: fonts.hand, fontSize: 24, lineHeight: 30, color: colors.camellia },
+  sealBottom: { fontSize: 9, color: colors.ink2, letterSpacing: 2 },
 
-  panel: {
-    marginTop: 22,
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: colors.paper2,
-    borderWidth: 1,
-    borderColor: colors.line,
+  brand: {
+    fontFamily: fonts.hand,
+    fontSize: 30,
+    lineHeight: 38,
+    color: colors.ink,
+    marginTop: 20,
   },
-  panelTitle: { fontFamily: fonts.hand, fontSize: 17, color: colors.ink, marginBottom: 12 },
+  tagline: { fontSize: 13, color: colors.ink2, lineHeight: 21, textAlign: 'center' },
+
+  form: { marginTop: 28 },
+  label: { fontSize: 13, color: colors.ink2, marginBottom: 6, marginTop: 14 },
   input: {
-    minHeight: 46,
+    height: 48,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.paper,
+    backgroundColor: colors.paper2,
     paddingHorizontal: 14,
-    paddingVertical: 10,
     fontSize: 15,
     color: colors.ink,
-    marginBottom: 12,
   },
-  inputReadonly: { color: colors.ink2, backgroundColor: colors.paper2 },
-  error: { fontSize: 13, color: colors.camelliaDeep, marginBottom: 8, lineHeight: 19 },
-  notice: { fontSize: 13, color: colors.teal, marginBottom: 8, lineHeight: 19 },
+  error: { fontSize: 13, color: colors.camelliaDeep, marginTop: 10, lineHeight: 19 },
+  notice: { fontSize: 13, color: colors.teal, marginTop: 10, lineHeight: 19 },
+  hint: { fontSize: 12, color: colors.ink3, textAlign: 'center', marginTop: 10 },
 
   btnPrimary: {
-    minHeight: 46,
-    borderRadius: 12,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: colors.camellia,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
+    marginTop: 22,
   },
-  btnPrimaryText: { color: '#FCF4F4', fontSize: 15, fontWeight: '600' },
+  btnPrimaryText: { color: '#FCF4F4', fontSize: 16, fontWeight: '600' },
   btnDisabled: { opacity: 0.6 },
-  pressed: { opacity: 0.75 },
+  pressed: { opacity: 0.8 },
 
-  btnLinkWrap: { alignItems: 'center', paddingVertical: 10, marginTop: 6 },
-  btnLink: { fontSize: 13.5, color: colors.camellia },
-  btnLinkDisabled: { color: colors.ink3 },
+  links: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 16,
+  },
+  linkMuted: { fontSize: 13, color: colors.ink2 },
+  link: { fontSize: 13, color: colors.camellia },
+
+  footnote: {
+    marginTop: 32,
+    fontSize: 12,
+    color: colors.ink3,
+    textAlign: 'center',
+  },
 });

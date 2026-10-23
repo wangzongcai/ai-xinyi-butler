@@ -601,17 +601,20 @@
 <!-- 登录页 -->
 <template id="screen-login">
   <div class="screen">
-    <div class="head">
-      <div class="titles"><div class="head-title">登录 ， 注册</div></div>
-    </div>
-    <div class="body">
-      <p style="font-size:14px;color:var(--ink-2);line-height:1.8">登录只用于识别你的身份。心意数据永远留在本机，不会上传、不会随账号同步。</p>
-      <div style="display:grid;gap:12px;margin-top:22px">
-        <button class="btn btn-quiet btn-block" data-msg="将进入手机号验证码流程（原型演示）">手机号 + 验证码</button>
-        <button class="btn btn-quiet btn-block" data-msg="将进入邮箱验证码流程（原型演示）">邮箱 + 验证码</button>
-        <button class="btn btn-quiet btn-block" data-msg="微信登录，需要开放平台资质（原型演示）">使用微信登录</button>
-        <button class="btn btn-quiet btn-block" data-msg="Apple 登录仅用于 iOS（原型演示）">使用 Apple 登录</button>
+    <div class="body" style="text-align:center;padding-top:34px">
+      <div class="seal" style="margin:0 auto 14px;width:96px;height:96px;border-radius:50%;font-size:26px;line-height:1.2;display:flex;align-items:center;justify-content:center">心意</div>
+      <div class="head-title" style="font-size:28px">心意管家</div>
+      <p style="font-size:13px;color:var(--ink-2);line-height:1.9;margin-top:8px">重要的人，和他们的日子，都替你记着。<br>日子到来之前，话、礼物、贺卡已替你备好。</p>
+      <div style="text-align:left;margin-top:26px">
+        <div class="field"><label>邮箱</label><input placeholder="you@example.com" /></div>
+        <div class="field"><label>密码</label><input type="password" placeholder="至少 6 位" /></div>
       </div>
+      <button class="btn btn-pine btn-block" style="border-radius:999px;height:48px" data-msg="登录 / 注册（原型演示）">开始使用</button>
+      <div class="row" style="border:0;justify-content:space-between;padding-top:14px">
+        <span style="font-size:13px;color:var(--ink-2)">忘记密码？</span>
+        <span style="font-size:13px;color:var(--camellia)">还没有账号？注册</span>
+      </div>
+      <p style="font-size:12px;color:var(--ink-3);margin-top:30px">登录只识别身份，心意数据仍只存在这台设备。</p>
     </div>
   </div>
 </template>
