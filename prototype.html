@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 心意管家 前端原型</title>
+<style>
+  :root{
+    --page:#F3E7E7;
+    --paper:#F9EEED;
+    --paper-2:#FDF8F7;
+    --ink:#3A2627;
+    --ink-2:#705554;
+    --ink-3:#9C817F;
+    --camellia:#CE7480;
+    --camellia-deep:#B85E6B;
+    --rose:#E2B7BD;
+    --rose-tint:#F7E3E5;
+    --camellia-tint:#F6E2E1;
+    --teal:#83AAA3;
+    --gold:#C6A15B;
+    --line:#E5CECC;
+    --shadow:0 14px 40px rgba(90,45,52,.14);
+    --r-xl:18px;
+    --r-md:12px;
+    --r-sm:8px;
+    --font-hand:"Kaiti SC","STKaiti","KaiTi","DFKai-SB","FangSong",serif;
+    --font-ui:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:var(--font-ui);background:var(--page);color:var(--ink);line-height:1.6;padding:48px 22px 88px}
+  a{color:inherit}
+  button{font-family:inherit;cursor:pointer}
+  input,textarea{font-family:inherit;color:inherit}
+
+  /* 文档头 */
+  .doc{max-width:1320px;margin:0 auto}
+  .doc h1{font-family:var(--font-hand);font-weight:normal;font-size:42px;letter-spacing:.02em;line-height:1.15}
+  .doc-lede{font-size:17px;color:var(--ink-2);max-width:46em;margin-top:10px}
+  .doc h2{font-family:var(--font-hand);font-weight:normal;font-size:26px;margin:0 0 18px}
+
+  /* 令牌区 */
+  .tokens{margin:34px 0 46px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .tk{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-md);padding:20px 20px 22px}
+  .tk h3{font-size:13px;color:var(--ink-2);font-weight:600;margin-bottom:14px}
+  .swatches{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  .sw{display:flex;flex-direction:column;gap:6px}
+  .sw i{height:44px;border-radius:var(--r-sm);border:1px solid rgba(90,45,52,.08)}
+  .sw b{font-size:12px;font-weight:600}
+  .sw span{font-size:11px;color:var(--ink-3);font-family:ui-monospace,Consolas,monospace;letter-spacing:0}
+  .specimen{margin:4px 0 2px}
+  .specimen .hand{font-family:var(--font-hand);font-size:22px;line-height:1.3}
+  .specimen .ui{font-size:15px;color:var(--ink-2);margin-top:4px}
+  .tk ul{list-style:none;font-size:13.5px;color:var(--ink-2)}
+  .tk ul li{padding:3px 0 3px 16px;position:relative}
+  .tk ul li::before{content:"";position:absolute;left:0;top:11px;width:6px;height:6px;border-radius:50%;background:var(--camellia)}
+  .avoid{font-size:13px;color:var(--ink-3)}
+  .avoid s{color:var(--ink-3)}
+  @media(max-width:920px){.tokens{grid-template-columns:1fr}}
+
+  /* 交互区 */
+  .interactive{display:grid;grid-template-columns:auto 1fr;gap:40px;align-items:start;margin-bottom:64px}
+  .hint{color:var(--ink-2);font-size:14px}
+  @media(max-width:960px){.interactive{grid-template-columns:1fr}}
+
+  /* 手机外壳 */
+  .phone{width:390px;height:844px;border-radius:46px;background:#3B2327;padding:10px;
+    box-shadow:0 30px 70px rgba(90,38,48,.32),0 2px 6px rgba(90,38,48,.22);position:relative}
+  .phone-ui{width:100%;height:100%;border-radius:38px;overflow:hidden;background:var(--paper);
+    display:flex;flex-direction:column;position:relative}
+  .statusbar{height:40px;flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;
+    padding:0 24px;font-size:12.5px;color:var(--ink);font-weight:600}
+  .statusbar .dots{display:flex;gap:4px;align-items:center}
+  .statusbar .dots i{width:13px;height:8px;border-radius:2px;background:var(--ink);opacity:.9}
+  #stage{flex:1 1 auto;position:relative;overflow:hidden}
+
+  /* 屏面通用 */
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--paper)}
+  .screen[hidden]{display:none}
+  .head{flex:0 0 auto;padding:14px 22px 10px;display:flex;align-items:center;gap:12px}
+  .head .titles{flex:1;min-width:0}
+  .head .app{font-family:var(--font-hand);font-size:19px;line-height:1.2}
+  .head .sub{font-size:12px;color:var(--ink-2)}
+  .head-back{border:1px solid var(--line);background:var(--paper-2);color:var(--ink);
+    width:36px;height:36px;border-radius:10px;font-size:17px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .head-title{font-family:var(--font-hand);font-size:19px;line-height:1.3}
+  .seal{width:40px;height:40px;flex:0 0 auto;border-radius:7px;background:var(--camellia);color:var(--paper);
+    font-family:var(--font-hand);font-size:21px;display:inline-flex;align-items:center;justify-content:center;letter-spacing:0}
+  .body{flex:1 1 auto;overflow-y:auto;padding:6px 22px 28px}
+  .body::-webkit-scrollbar{width:0}
+
+  /* 明信片 */
+  .postcard{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-xl);
+    padding:20px 20px 18px;position:relative}
+  .postcard.framed::after{content:"";position:absolute;inset:7px;border:1px dashed var(--rose);
+    border-radius:12px;pointer-events:none}
+  .pc-tag{display:inline-flex;align-items:center;gap:6px;background:var(--camellia-tint);color:#8F4E55;
+    border-radius:999px;padding:3px 10px;font-size:12.5px}
+  .pc-tag b{font-weight:600}
+  .pc-main{font-family:var(--font-hand);font-size:26px;line-height:1.25;margin-top:12px}
+  .pc-sub{font-size:13.5px;color:var(--ink-2);margin-top:4px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    border-radius:var(--r-md);border:1px solid transparent;font-size:14.5px;font-weight:600;
+    padding:11px 16px;min-height:42px}
+  .btn-pine{background:var(--camellia);color:#FCF4F4}
+  .btn-pine:hover{background:var(--camellia-deep)}
+  .btn-ghost{background:var(--paper-2);color:var(--camellia);border:1px solid var(--rose)}
+  .btn-quiet{background:transparent;color:var(--ink-2);border:1px solid var(--line)}
+  .btn-block{width:100%}
+
+  /* 分区标题 */
+  .sec{margin-top:24px}
+  .sec-t{font-family:var(--font-hand);font-size:17px;margin-bottom:8px}
+  .sec-t small{font-size:12px;color:var(--ink-2);font-family:var(--font-ui);margin-left:8px}
+
+  /* 列表行 */
+  .list{border-top:1px solid var(--line)}
+  .row{display:flex;align-items:center;gap:12px;padding:14px 2px;border:0;border-bottom:1px solid var(--line);
+    background:transparent;width:100%;text-align:left;font-size:inherit}
+  .row-name{font-family:var(--font-hand);font-size:18px}
+  .row-meta{font-size:12.5px;color:var(--ink-2)}
+  .row-side{margin-left:auto;text-align:right;flex:0 0 auto}
+  .pill{display:inline-flex;padding:3px 10px;border-radius:999px;font-size:12px;background:var(--rose-tint);color:var(--camellia-deep)}
+  .pill.warm{background:var(--camellia-tint);color:#8F4E55}
+  .row-add{color:var(--camellia);font-size:14px}
+  .row-add .plus{font-size:18px;margin-right:6px}
+
+  /* 提示条 */
+  .banner{background:var(--rose-tint);border:1px solid var(--rose);border-radius:var(--r-md);
+    padding:12px 14px;font-size:13px;color:var(--ink-2);display:flex;align-items:center;gap:12px;margin-top:24px}
+  .banner .txt{flex:1}
+  .banner .btn{margin-left:auto;min-height:36px;padding:7px 12px;font-size:13px}
+
+  /* 底部 Tab */
+  .tabbar{flex:0 0 auto;height:66px;border-top:1px solid var(--line);background:var(--paper-2);
+    display:flex;padding:6px 10px 8px}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    background:transparent;border:0;color:var(--ink-3);font-size:11.5px;border-radius:12px}
+  .tab svg{width:21px;height:21px}
+  .tab.on{color:var(--camellia);font-weight:600}
+  .tab.on svg{stroke:var(--camellia)}
+
+  /* 特征 chips */
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{background:var(--rose-tint);color:var(--camellia-deep);border-radius:var(--r-sm);padding:6px 12px;font-size:13.5px}
+
+  /* 祝福卡 */
+  .bless{background:var(--paper-2);border:1px solid var(--line);border-left:3px solid var(--rose);
+    border-radius:var(--r-md);padding:16px 16px 12px;margin-bottom:12px}
+  .bless p{font-family:var(--font-hand);font-size:16.5px;line-height:1.75;color:var(--ink)}
+  .bless .acts{display:flex;gap:10px;margin-top:10px;justify-content:flex-end}
+  .mini{min-height:32px;padding:5px 12px;font-size:13px;border-radius:9px}
+
+  /* 礼物 */
+  .gift{display:flex;align-items:center;gap:12px;padding:13px 2px;border-bottom:1px solid var(--line)}
+  .gift:last-child{border-bottom:0}
+  .gift .n{flex:1;font-size:14.5px}
+  .gift .go{color:var(--camellia);font-size:13px;font-weight:600;border:1px solid var(--rose);
+    background:var(--paper-2);min-height:32px;padding:5px 12px;border-radius:9px}
+
+  /* 贺卡 */
+  .card-stage{display:flex;justify-content:center;padding:10px 0 22px}
+  .card{width:252px;aspect-ratio:3/4;background:var(--paper-2);border:1px solid var(--rose);
+    border-radius:16px;padding:24px 20px;display:flex;flex-direction:column;position:relative;box-shadow:var(--shadow)}
+  .card .salute{font-family:var(--font-hand);font-size:17px;color:var(--ink-2)}
+  .card .art{flex:1;display:flex;justify-content:center;align-items:center;min-height:0}
+  .card .bcopy{font-family:var(--font-hand);font-size:16px;line-height:1.8;color:var(--ink);margin-top:auto}
+  .card .seal-mini{position:absolute;right:16px;bottom:14px;width:34px;height:34px;border-radius:6px;
+    background:var(--camellia);color:var(--paper);font-family:var(--font-hand);font-size:18px;
+    display:flex;align-items:center;justify-content:center;opacity:.92}
+  .field{margin-bottom:14px}
+  .field label{font-size:12.5px;color:var(--ink-2);display:block;margin-bottom:6px}
+  .field input,.field textarea{width:100%;border:1px solid var(--line);border-radius:var(--r-sm);
+    background:var(--paper-2);padding:10px 12px;font-size:14.5px;resize:vertical}
+  .field textarea{min-height:84px;line-height:1.7}
+
+  /* 分段过滤 */
+  .seg{display:flex;background:var(--rose-tint);border-radius:var(--r-md);padding:4px;margin-bottom:16px}
+  .seg button{flex:1;border:0;background:transparent;color:var(--ink-2);font-size:13.5px;
+    padding:8px 4px;border-radius:9px}
+  .seg button.on{background:var(--paper-2);color:var(--camellia);font-weight:600;box-shadow:0 1px 3px rgba(90,45,52,.12)}
+  .hist[hidden]{display:none}
+  .hist .row-name{font-size:16px}
+
+  /* 设置 */
+  .setting{padding:15px 2px;border-bottom:1px solid var(--line)}
+  .setting .k{font-size:15px}
+  .setting .h{font-size:12.5px;color:var(--ink-2);margin-top:2px}
+  .stepper{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line);
+    border-radius:var(--r-sm);background:var(--paper-2)}
+  .stepper button{width:36px;height:36px;border:0;background:transparent;font-size:19px;color:var(--camellia)}
+  .stepper .v{min-width:52px;text-align:center;font-size:14px;font-weight:600}
+  .seg.pine button.on{color:var(--camellia)}
+
+  /* 分割 */
+  .section-title{display:flex;align-items:baseline;gap:8px}
+
+  /* 表单 */
+  .form-nav{color:var(--camellia);font-size:14px;border:1px dashed var(--rose);border-radius:var(--r-md);
+    width:100%;padding:11px;margin-top:6px;background:transparent}
+  .save{margin-top:22px}
+
+  /* 账户条 */
+  .account{display:flex;align-items:center;gap:12px;margin-top:6px}
+  .avatar{width:44px;height:44px;border-radius:50%;background:var(--rose-tint);color:var(--camellia);
+    display:flex;align-items:center;justify-content:center;font-family:var(--font-hand);font-size:18px}
+  .account .info{font-size:14.5px}
+  .account .info small{display:block;font-size:12px;color:var(--ink-2)}
+
+  /* Toast */
+  #toast{position:absolute;left:22px;right:22px;bottom:88px;z-index:30;background:var(--ink);
+    color:#FCF3F1;font-size:13.5px;border-radius:12px;padding:12px 16px;text-align:center;
+    opacity:0;transform:translateY(8px);pointer-events:none;transition:.24s ease}
+  #toast.show{opacity:1;transform:none}
+
+  /* 总览网格 */
+  .ov-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;justify-items:center}
+  @media(max-width:1340px){.ov-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:640px){.ov-grid{grid-template-columns:1fr}}
+  .ov-item{width:100%;max-width:390px}
+  .ov-label{font-size:13.5px;color:var(--ink-2);margin:0 0 10px 6px}
+  .ov-frame{width:390px;max-width:100%;height:760px;border-radius:38px;overflow:hidden;pointer-events:none;background:var(--paper);
+    border:1px solid var(--line);box-shadow:0 14px 40px rgba(90,45,52,.12)}
+  .ov-frame .screen{position:relative;inset:auto;height:760px}
+
+  :focus-visible{outline:2px solid var(--camellia);outline-offset:2px}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <h1>AI 心意管家 前端原型</h1>
+  <p class="doc-lede">三个决定人物：一位想用心维系关系、却常忘了日子也缺词句的成年人；一段「提前武装好心意」的价值；一种如收到手写明信片般的治愈感。</p>
+
+  <section class="tokens">
+    <div class="tk">
+      <h3>色板 ， 山茶 + 檀墨</h3>
+      <div class="swatches">
+        <div class="sw"><i style="background:#F9EEED"></i><b>粉笺</b><span>#F9EEED</span></div>
+        <div class="sw"><i style="background:#3A2627"></i><b>檀墨</b><span>#3A2627</span></div>
+        <div class="sw"><i style="background:#CE7480"></i><b>山茶</b><span>#CE7480</span></div>
+        <div class="sw"><i style="background:#E2B7BD"></i><b>桃粉</b><span>#E2B7BD</span></div>
+        <div class="sw"><i style="background:#C6A15B"></i><b>金砂</b><span>#C6A15B</span></div>
+        <div class="sw"><i style="background:#83AAA3"></i><b>青瓷</b><span>#83AAA3</span></div>
+      </div>
+    </div>
+    <div class="tk">
+      <h3>字体 ， 两张脸</h3>
+      <div class="specimen"><div class="hand">把心意，提前准备好</div></div>
+      <div class="specimen" style="margin-top:8px"><div class="ui">楷体负责信感标题与祝福正文</div></div>
+      <div class="specimen" style="margin-top:8px"><div class="ui">系统黑体负责界面、标签、表单与导航</div></div>
+    </div>
+    <div class="tk">
+      <h3>设计原则</h3>
+      <ul>
+        <li>像写信一样左对齐，留白优先</li>
+        <li>一枚山茶色印章、一张明信片，作为唯一的主角</li>
+        <li>楷体只出现在「信」的时刻，其余保持安静</li>
+        <li>内容照着对象特点写，不做通用模板腔</li>
+      </ul>
+      <p class="avoid" style="margin-top:12px">主动避开：<s>奶油底 + 红色</s> ，&#8202; <s>黑底 + 亮色</s> ，&#8202; <s>报纸风</s> ，&#8202; <s>渐变</s> ，&#8202; <s>圆角卡片阵列</s></p>
+    </div>
+  </section>
+
+  <section class="interactive">
+    <div class="phone">
+      <div class="phone-ui">
+        <div class="statusbar"><span>9:00</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div id="stage"></div>
+        <div id="toast"></div>
+      </div>
+    </div>
+    <div>
+      <h2>交互原型</h2>
+      <p class="hint">这是可点击的屏面。底部三个 Tab 分别是首页、心意记录、设置；点对象行进入对象页，再进心意内容页与贺卡页。总览区下方可以一次看全所有屏面。</p>
+    </div>
+  </section>
+
+  <section class="overview">
+    <h2>全部屏面总览</h2>
+    <div class="ov-grid" id="ov-grid"></div>
+  </section>
+
+</div>
+
+<!-- ============ 屏面模板 ============ -->
+
+<!-- 首页 -->
+<template id="screen-home">
+  <div class="screen">
+    <div class="head">
+      <div class="titles"><div class="app">心意管家</div></div>
+      <div class="seal">心</div>
+    </div>
+    <div class="body">
+      <div class="head-sub" style="display:flex;justify-content:space-between;align-items:baseline">
+        <span style="font-size:13px;color:var(--ink-2)">今天，10月23日</span>
+      </div>
+
+      <div class="postcard framed" data-go="content" style="cursor:pointer;margin-top:12px">
+        <span class="pc-tag">接下来 <b>还有 3 天</b></span>
+        <div class="pc-main">妈妈的生日</div>
+        <div class="pc-sub">把祝福、礼物和贺卡都提前备好</div>
+        <div style="margin-top:16px">
+          <span class="btn btn-pine" data-go="content">去准备</span>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">重要的人 <small>点击进入</small></div>
+        <div class="list">
+          <button class="row" data-go="person">
+            <div><div class="row-name">妈妈</div><div class="row-meta">家人 ， 生日 10月26日</div></div>
+            <div class="row-side"><span class="pill warm">3 天</span></div>
+          </button>
+          <button class="row" data-go="person">
+            <div><div class="row-name">老徐</div><div class="row-meta">挚友 ， 结婚纪念 11月2日</div></div>
+            <div class="row-side"><span class="pill">10 天</span></div>
+          </button>
+          <button class="row" data-go="person">
+            <div><div class="row-name">小满</div><div class="row-meta">伴侣 ， 相识周年 12月1日</div></div>
+            <div class="row-side"><span class="pill">38 天</span></div>
+          </button>
+          <button class="row row-add" data-go="new"><span class="plus">＋</span>添加一位想记住的人</button>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">近日心意 <small>未来 30 天</small></div>
+        <div class="list">
+          <button class="row" data-go="content">
+            <div><div class="row-name" style="font-size:15px">妈妈的生日</div><div class="row-meta">10月26日</div></div>
+            <div class="row-side"><span class="pill warm">3 天后</span></div>
+          </button>
+          <button class="row" data-go="content">
+            <div><div class="row-name" style="font-size:15px">老徐的结婚纪念</div><div class="row-meta">11月2日</div></div>
+            <div class="row-side"><span class="pill">10 天后</span></div>
+          </button>
+        </div>
+        <div class="banner">
+          <span class="txt">通知没开，早上九点我就提醒不到你了。</span>
+          <span class="btn btn-pine" data-msg="通知将改成每天早上九点送达（原型演示）">打开通知</span>
+        </div>
+      </div>
+    </div>
+    <footer class="tabbar">
+      <button class="tab on" data-tab="home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>
+        首页
+      </button>
+      <button class="tab" data-tab="history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h14"/></svg>
+        心意记录
+      </button>
+      <button class="tab" data-tab="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>
+        设置
+      </button>
+    </footer>
+  </div>
+</template>
+
+<!-- 对象页 -->
+<template id="screen-person">
+  <div class="screen">
+    <div class="head">
+      <button class="head-back" data-back aria-label="返回">‹</button>
+      <div class="titles"><div class="head-title">妈妈</div><div class="sub">家人</div></div>
+    </div>
+    <div class="body">
+      <div class="sec" style="margin-top:0">
+        <div class="sec-t">重要的日子</div>
+        <div class="list">
+          <div class="row"><div><div class="row-name" style="font-size:16px">生日</div><div class="row-meta">10月26日</div></div><div class="row-side"><span class="pill warm">还有 3 天</span></div></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">关于妈妈 <small>写给祝福的素材</small></div>
+        <div class="chips"><span class="chip">爱养花，今年刚退休</span><span class="chip">喜欢摄影</span><span class="chip">口味偏清淡</span></div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">现在可以做</div>
+        <div class="list">
+          <button class="row" data-go="content"><div class="row-name" style="font-size:16px">写几句祝福、挑几件礼物</div></div>
+          <button class="row" data-go="card"><div class="row-name" style="font-size:16px">做一张属于妈妈的贺卡</div></div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:26px">
+        <button class="btn btn-quiet btn-block" data-msg="进入编辑（原型演示）">编辑对象</button>
+        <button class="btn btn-quiet btn-block" data-msg="已移入回收站，30 天内可恢复（原型演示）">删除对象</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- 心意内容页 -->
+<template id="screen-content">
+  <div class="screen">
+    <div class="head">
+      <button class="head-back" data-back aria-label="返回">‹</button>
+      <div class="titles"><div class="head-title">给妈妈的祝福</div><div class="sub">照着妈妈的特点写好了</div></div>
+    </div>
+    <div class="body">
+      <div class="bless">
+        <p>妈，您退休后的日子要像您种的花一样，开得从容又好看。生日这天，只被喜欢的事团团围住。</p>
+        <div class="acts"><button class="mini btn-quiet" data-msg="已复制到剪贴板（原型演示）">复制</button></div>
+      </div>
+      <div class="bless">
+        <p>又到您的生日了。谢谢您这些年把家照看得这样好，今年换我们多陪陪您、多拍点您爱的生活。</p>
+        <div class="acts"><button class="mini btn-quiet" data-msg="已复制到剪贴板（原型演示）">复制</button></div>
+      </div>
+      <div class="bless">
+        <p>祝您新一岁身体健康、胃口常好。想去的地方我们找时间一起去，想拍的花我陪您去拍。</p>
+        <div class="acts"><button class="mini btn-quiet" data-msg="已复制到剪贴板（原型演示）">复制</button></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:6px">
+        <button class="btn btn-ghost btn-block" data-msg="已换一批，数量按设置生成（原型演示）">换一批</button>
+        <button class="btn btn-ghost btn-block" data-msg="可编辑后再复制（原型演示）">编辑</button>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">礼物建议 <small>4 条 ， 去淘宝</small></div>
+        <div style="background:var(--paper-2);border:1px solid var(--line);border-radius:var(--r-md);padding:4px 18px">
+          <div class="gift"><span class="n">一套好用的园艺工具与落地花架</span><button class="go" data-msg="将前往淘宝搜索（原型演示）">去看看</button></div>
+          <div class="gift"><span class="n">轻便入门的微单相机</span><button class="go" data-msg="将前往淘宝搜索（原型演示）">去看看</button></div>
+          <div class="gift"><span class="n">低糖低油的中式点心礼盒</span><button class="go" data-msg="将前往淘宝搜索（原型演示）">去看看</button></div>
+          <div class="gift"><span class="n">柔软的羊绒披肩</span><button class="go" data-msg="将前往淘宝搜索（原型演示）">去看看</button></div>
+        </div>
+      </div>
+
+      <button class="btn btn-pine btn-block" data-go="card" style="margin-top:22px">把祝福做成贺卡</button>
+    </div>
+  </div>
+</template>
+
+<!-- 贺卡页 -->
+<template id="screen-card">
+  <div class="screen">
+    <div class="head">
+      <button class="head-back" data-back aria-label="返回">‹</button>
+      <div class="titles"><div class="head-title">电子贺卡</div><div class="sub">竖版 3:4，导出为 PNG</div></div>
+    </div>
+    <div class="body">
+      <div class="card-stage">
+        <div class="card">
+          <div class="salute">亲爱的妈妈</div>
+          <div class="art">
+            <svg width="70" height="104" viewBox="0 0 70 104" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M35 98 C35 78 35 62 35 46" stroke="#6E9A92" stroke-width="1.6"/>
+              <path d="M35 74 C28 70 24 66 24 58 C24 50 30 47 35 50 C40 47 46 50 46 58 C46 66 42 70 35 74 Z" stroke="#6E9A92" stroke-width="1.6" fill="#DCEAE5"/>
+              <path d="M35 52 C33 44 33 36 35 30 C37 36 37 44 35 52 Z" fill="#6E9A92"/>
+              <path d="M35 60 L35 46" stroke="#6E9A92" stroke-width="1.6"/>
+              <circle cx="35" cy="30" r="7" fill="#CE7480"/>
+            </svg>
+          </div>
+          <div class="bcopy">您退休后的日子要像您种的花一样，开得从容又好看。生日这天，只被喜欢的事团团围住。</div>
+          <span class="seal-mini">心</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="c-salute">称呼（可修改）</label>
+        <input id="c-salute" value="亲爱的妈妈">
+      </div>
+      <div class="field">
+        <label for="c-text">祝福语（可从上面任选一句修改）</label>
+        <textarea id="c-text">您退休后的日子要像您种的花一样，开得从容又好看。生日这天，只被喜欢的事团团围住。</textarea>
+      </div>
+      <button class="btn btn-pine btn-block" data-msg="已导出竖版 3:4 PNG 到相册（原型演示）">导出 PNG</button>
+    </div>
+  </div>
+</template>
+
+<!-- 心意记录页 -->
+<template id="screen-history">
+  <div class="screen">
+    <div class="head"><div class="titles"><div class="head-title">心意记录</div><div class="sub">看看哪些送达，哪些还欠着</div></div></div>
+    <div class="body">
+      <div class="seg">
+        <button class="on" data-filter="全部">全部</button>
+        <button data-filter="未送">未送</button>
+        <button data-filter="已送">已送</button>
+        <button data-filter="已过期">已过期</button>
+      </div>
+
+      <div class="list">
+        <div class="row hist" data-state="未送">
+          <div><div class="row-name">2026 妈妈生日</div><div class="row-meta">妈妈 ， 10月26日</div></div>
+          <div class="row-side"><span class="pill warm">未送</span><div style="margin-top:6px"><button class="mini btn-ghost" data-msg="已标记为已送（原型演示）">标记已送</button></div></div>
+        </div>
+        <div class="row hist" data-state="已送">
+          <div><div class="row-name">2026 父亲节</div><div class="row-meta">爸爸 ， 6月21日</div></div>
+          <div class="row-side"><span class="pill">已送</span></div>
+        </div>
+        <div class="row hist" data-state="已过期">
+          <div><div class="row-name">2025 老徐结婚纪念</div><div class="row-meta">老徐 ， 9月12日</div></div>
+          <div class="row-side"><span class="pill" style="background:#EDE6DC;color:#7C7365">已过期</span></div>
+        </div>
+      </div>
+      <p style="font-size:12.5px;color:var(--ink-3);margin-top:16px">每个日子只记一条，重复提醒不重复记录；日子过去未标记的会自动变成「已过期」。</p>
+    </div>
+    <footer class="tabbar">
+      <button class="tab" data-tab="home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>
+        首页
+      </button>
+      <button class="tab on" data-tab="history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h14"/></svg>
+        心意记录
+      </button>
+      <button class="tab" data-tab="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>
+        设置
+      </button>
+    </footer>
+  </div>
+</template>
+
+<!-- 设置页 -->
+<template id="screen-settings">
+  <div class="screen">
+    <div class="head"><div class="titles"><div class="head-title">设置</div><div class="sub">提醒与生成的偏好</div></div></div>
+    <div class="body">
+      <div class="setting">
+        <div style="display:flex;align-items:center">
+          <div style="flex:1"><div class="k">提前提醒天数</div><div class="h">全局生效 ， 0 表示只在当天</div></div>
+          <div class="stepper"><button data-dec="advance" aria-label="减少">−</button><span class="v" id="advance-v">3 天</span><button data-inc="advance" aria-label="增加">＋</button></div>
+        </div>
+      </div>
+      <div class="setting">
+        <div style="display:flex;align-items:center">
+          <div style="flex:1"><div class="k">每次生成祝福</div><div class="h">可调 1 到 5 条</div></div>
+          <div class="stepper"><button data-dec="count" aria-label="减少">−</button><span class="v" id="count-v">3 条</span><button data-inc="count" aria-label="增加">＋</button></div>
+        </div>
+      </div>
+      <div class="setting">
+        <div class="k" style="margin-bottom:10px">礼物「去看看」跳转平台</div>
+        <div class="seg pine" id="platform-seg">
+          <button class="on" data-platform="淘宝">淘宝</button>
+          <button data-platform="京东">京东</button>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">账号</div>
+        <div class="account">
+          <div class="avatar">客</div>
+          <div class="info">未登录<small>登录后，心意数据仍只存在这台设备</small></div>
+        </div>
+        <button class="btn btn-ghost btn-block" data-go="login" style="margin-top:14px">登录或注册</button>
+      </div>
+
+      <div class="sec">
+        <div class="sec-t">其他</div>
+        <div class="list">
+          <button class="row" data-go="recycle"><div class="row-name" style="font-size:15px">回收站</div><div class="row-meta">已删除对象保留 30 天可恢复</div></div>
+        </div>
+      </div>
+    </div>
+    <footer class="tabbar">
+      <button class="tab" data-tab="home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>
+        首页
+      </button>
+      <button class="tab" data-tab="history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h14"/></svg>
+        心意记录
+      </button>
+      <button class="tab on" data-tab="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>
+        设置
+      </button>
+    </footer>
+  </div>
+</template>
+
+<!-- 回收站 -->
+<template id="screen-recycle">
+  <div class="screen">
+    <div class="head">
+      <button class="head-back" data-back aria-label="返回">‹</button>
+      <div class="titles"><div class="head-title">回收站</div><div class="sub">删除后保留 30 天</div></div>
+    </div>
+    <div class="body">
+      <p style="font-size:13px;color:var(--ink-2);margin-bottom:6px">已删除的对象会在这里保留 30 天，之后彻底清除、无法找回。</p>
+      <div class="list" style="margin-top:10px">
+        <div class="row">
+          <div><div class="row-name" style="font-size:16px">妈妈</div><div class="row-meta">6 天前删除 ， 还剩 24 天</div></div>
+          <div class="row-side"><button class="mini btn-ghost" data-msg="已恢复妈妈（原型演示）">恢复</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- 登录页 -->
+<template id="screen-login">
+  <div class="screen">
+    <div class="head">
+      <button class="head-back" data-back aria-label="返回">‹</button>
+      <div class="titles"><div class="head-title">登录 ， 注册</div></div>
+    </div>
+    <div class="body">
+      <p style="font-size:14px;color:var(--ink-2);line-height:1.8">登录只是为了记住你的身份。心意数据永远留在本机，不会上传、不会随账号同步。</p>
+      <div style="display:grid;gap:12px;margin-top:22px">
+        <button class="btn btn-quiet btn-block" data-msg="将进入手机号验证码流程（原型演示）">手机号 + 验证码</button>
+        <button class="btn btn-quiet btn-block" data-msg="将进入邮箱验证码流程（原型演示）">邮箱 + 验证码</button>
+        <button class="btn btn-quiet btn-block" data-msg="微信登录，需要开放平台资质（原型演示）">使用微信登录</button>
+        <button class="btn btn-quiet btn-block" data-msg="Apple 登录仅用于 iOS（原型演示）">使用 Apple 登录</button>
+      </div>
+      <button class="btn btn-pine btn-block" data-tab="home" style="margin-top:26px">先不登录，游客进入</button>
+    </div>
+  </div>
+</template>
+
+<!-- 新增对象页 -->
+<template id="screen-new">
+  <div class="screen">
+    <div class="head">
+      <button class="head-back" data-back aria-label="返回">‹</button>
+      <div class="titles"><div class="head-title">添加一位要记住的人</div></div>
+    </div>
+    <div class="body">
+      <div class="field" style="margin-top:6px">
+        <label for="n-name">姓名</label>
+        <input id="n-name" placeholder="比如：妈妈">
+      </div>
+      <div class="field">
+        <label for="n-rel">关系（可自由填写）</label>
+        <input id="n-rel" placeholder="家人、挚友、重要客户……">
+      </div>
+      <div class="field">
+        <label>生日（可留空）</label>
+        <input value="" placeholder="未设置">
+      </div>
+      <button class="form-nav" data-msg="一个对象可添加多个纪念日，每个都能起名字（原型演示）">＋ 添加一个纪念日</button>
+      <div style="height:14px"></div>
+      <button class="form-nav" data-msg="特征每条最多 50 字，每个对象最多 10 条（原型演示）">＋ 添加一条特征（比如爱养花）</button>
+      <button class="btn btn-pine btn-block save" data-msg="已保存，回到首页（原型演示）">保存</button>
+    </div>
+  </div>
+</template>
+
+<script>
+  const SCREENS = ['home','person','content','card','history','settings','recycle','new','login'];
+  const TABS = ['home','history','settings'];
+  const OVERVIEW_ORDER = ['home','person','content','card','history','settings','recycle','new','login'];
+  const STEPPER = { advance:{min:0,max:30,suffix:' 天'}, count:{min:1,max:5,suffix:' 条'} };
+  let stack = ['home'];
+
+  function cloneScreen(id){
+    const tpl = document.getElementById('screen-' + id);
+    return tpl.content.firstElementChild.cloneNode(true);
+  }
+
+  function setActiveTab(){
+    document.querySelectorAll('#stage .tab').forEach(t=>{
+      const id = t.getAttribute('data-tab');
+      t.classList.toggle('on', id === stack[0]);
+    });
+  }
+
+  function show(id){
+    const stage = document.getElementById('stage');
+    stage.innerHTML = '';
+    stage.appendChild(cloneScreen(id));
+    setActiveTab();
+  }
+
+  function go(id){ stack.push(id); show(id); }
+  function back(){ if(stack.length > 1){ stack.pop(); show(stack[stack.length-1]); } }
+  function tab(id){ stack = [id]; show(id); }
+
+  function toast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._h);
+    t._h = setTimeout(function(){ t.classList.remove('show'); }, 2200);
+  }
+
+  document.addEventListener('click', function(e){
+    const goEl = e.target.closest('[data-go]');
+    if(goEl){ go(goEl.getAttribute('data-go')); return; }
+    const tabEl = e.target.closest('[data-tab]');
+    if(tabEl){ tab(tabEl.getAttribute('data-tab')); return; }
+    const backEl = e.target.closest('[data-back]');
+    if(backEl){ back(); return; }
+    const msgEl = e.target.closest('[data-msg]');
+    if(msgEl){ toast(msgEl.getAttribute('data-msg')); return; }
+    const dec = e.target.closest('[data-dec]');
+    if(dec){ step(dec.getAttribute('data-dec'), -1); return; }
+    const inc = e.target.closest('[data-inc]');
+    if(inc){ step(inc.getAttribute('data-inc'), 1); return; }
+    const pf = e.target.closest('[data-platform]');
+    if(pf){
+      document.querySelectorAll('#stage #platform-seg button').forEach(b=>b.classList.toggle('on', b === pf));
+      toast('礼物跳转已切换到' + pf.getAttribute('data-platform') + '（原型演示）');
+      return;
+    }
+    const flt = e.target.closest('[data-filter]');
+    if(flt){ filter(flt.getAttribute('data-filter')); return; }
+  });
+
+  function step(key, d){
+    const s = STEPPER[key];
+    const el = document.querySelector('#stage #' + key + '-v');
+    const cur = parseInt(el.textContent, 10);
+    const next = Math.max(s.min, Math.min(s.max, cur + d));
+    el.textContent = next + s.suffix;
+    toast('已设为 ' + next + s.suffix + '（原型演示）');
+  }
+
+  function filter(state){
+    document.querySelectorAll('#stage .seg button').forEach(b=>{
+      b.classList.toggle('on', b.getAttribute('data-filter') === state);
+    });
+    document.querySelectorAll('#stage .hist').forEach(row=>{
+      row.hidden = (state !== '全部' && row.getAttribute('data-state') !== state);
+    });
+  }
+
+  function buildOverview(){
+    const grid = document.getElementById('ov-grid');
+    OVERVIEW_ORDER.forEach(id=>{
+      const item = document.createElement('div');
+      item.className = 'ov-item';
+      const label = document.createElement('div');
+      label.className = 'ov-label';
+      const names = {home:'首页',person:'对象页',content:'心意内容页',card:'贺卡页',history:'心意记录页',settings:'设置页',recycle:'回收站',new:'新增对象页',login:'登录页'};
+      label.textContent = names[id];
+      const frame = document.createElement('div');
+      frame.className = 'ov-frame';
+      frame.appendChild(cloneScreen(id));
+      item.appendChild(label);
+      item.appendChild(frame);
+      grid.appendChild(item);
+    });
+  }
+
+  show('home');
+  buildOverview();
+</script>
+</body>
+</html>

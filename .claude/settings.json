@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npx tsc --noEmit)",
+      "PowerShell($env:CI = '1'; npx expo lint)",
+      "PowerShell(npm install --legacy-peer-deps)",
+      "PowerShell(supabase config push --help)",
+      "PowerShell(supabase --help)",
+      "PowerShell(supabase config --help)",
+      "PowerShell(supabase config diff --project-ref kszmreeiuqplcanfuijr)",
+      "PowerShell(supabase config diff --project-ref kszmreeiuqplcanfuijr --output-format json)",
+      "PowerShell(supabase config push --project-ref kszmreeiuqplcanfuijr --yes)",
+      "PowerShell($tmp = Join-Path $env:TEMP 'sb-config-check'; if \\(Test-Path $tmp\\) { Remove-Item $tmp -Recurse -Force }; New-Item -ItemType Directory -Path $tmp | Out-Null; supabase init --workdir $tmp --yes; supabase config pull --workdir $tmp --project-ref kszmreeiuqplcanfuijr --yes; Get-ChildItem $tmp -Recurse -File | Select-Object FullName)",
+      "PowerShell(supabase functions deploy --help)",
+      "PowerShell(supabase functions new delete-account; Get-ChildItem ..\\\\supabase\\\\functions\\\\delete-account -Force | Select-Object Name; Write-Output \"=== docker ===\"; \\(Get-Command docker -ErrorAction SilentlyContinue\\).Source)"
+    ]
+  }
+}
