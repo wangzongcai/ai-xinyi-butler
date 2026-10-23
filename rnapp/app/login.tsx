@@ -26,14 +26,18 @@ export default function LoginScreen() {
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  const isRegister = mode === 'register';
 
   function toggleMode() {
     setMode((value) => (value === 'login' ? 'register' : 'login'));
     setError(null);
     setNotice(null);
+    setConfirmPassword('');
   }
 
   async function handleSubmit() {
@@ -48,12 +52,16 @@ export default function LoginScreen() {
       setError(`密码至少 ${MIN_PASSWORD_LENGTH} 位`);
       return;
     }
+    if (isRegister && password !== confirmPassword) {
+      setError('两次输入的密码不一致');
+      return;
+    }
 
     setBusy(true);
     setError(null);
     setNotice(null);
     try {
-      if (mode === 'login') {
+      if (!isRegister) {
         await signInWithPassword(emailValue, password);
         // 登录态更新后，根路由守卫会自动切到首页
       } else {
@@ -87,18 +95,25 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* 印章式 Logo */}
-          <View style={styles.hero}>
-            <View style={styles.sealOuter}>
-              <View style={styles.sealInner}>
-                <Text style={styles.sealTop}>心意管家</Text>
-                <Text style={styles.sealMain}>心意</Text>
-                <Text style={styles.sealBottom}>已备好</Text>
-              </View>
+          {isRegister ? (
+            <View style={styles.heroCompact}>
+              <Text style={styles.brand}>注册心意管家</Text>
+              <Text style={styles.tagline}>注册即可使用，无需邮箱验证</Text>
             </View>
-            <Text style={styles.brand}>心意管家</Text>
-            <Text style={styles.tagline}>重要的人，和他们的日子，都替你记着。</Text>
-            <Text style={styles.tagline}>日子到来之前，话、礼物、贺卡已替你备好。</Text>
-          </View>
+          ) : (
+            <View style={styles.hero}>
+              <View style={styles.sealOuter}>
+                <View style={styles.sealInner}>
+                  <Text style={styles.sealTop}>心意管家</Text>
+                  <Text style={styles.sealMain}>心意</Text>
+                  <Text style={styles.sealBottom}>已备好</Text>
+                </View>
+              </View>
+              <Text style={styles.brand}>心意管家</Text>
+              <Text style={styles.tagline}>重要的人，和他们的日子，都替你记着。</Text>
+              <Text style={styles.tagline}>日子到来之前，话、礼物、贺卡已替你备好。</Text>
+            </View>
+          )}
 
           <View style={styles.form}>
             <Text style={styles.label}>邮箱</Text>
@@ -127,10 +142,30 @@ export default function LoginScreen() {
               secureTextEntry
               autoCapitalize="none"
               autoCorrect={false}
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              returnKeyType="done"
-              onSubmitEditing={handleSubmit}
+              autoComplete={isRegister ? 'new-password' : 'current-password'}
+              returnKeyType={isRegister ? 'next' : 'done'}
+              onSubmitEditing={isRegister ? undefined : handleSubmit}
             />
+
+            {isRegister ? (
+              <>
+                <Text style={styles.label}>确认密码</Text>
+                <TextInput
+                  style={styles.input}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  editable={!busy}
+                  placeholder="再次输入密码"
+                  placeholderTextColor={colors.ink3}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="new-password"
+                  returnKeyType="done"
+                  onSubmitEditing={handleSubmit}
+                />
+              </>
+            ) : null}
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
             {notice ? <Text style={styles.notice}>{notice}</Text> : null}
@@ -145,24 +180,29 @@ export default function LoginScreen() {
               disabled={busy}
             >
               <Text style={styles.btnPrimaryText}>
-                {busy ? '请稍候…' : mode === 'login' ? '开始使用' : '注册并登录'}
+                {busy ? '请稍候…' : isRegister ? '注册' : '开始使用'}
               </Text>
             </Pressable>
 
-            {mode === 'register' ? (
-              <Text style={styles.hint}>注册即可使用，无需邮箱验证</Text>
-            ) : null}
-
-            <View style={styles.links}>
-              <Pressable onPress={handleForgotPassword} hitSlop={8}>
-                <Text style={styles.linkMuted}>忘记密码？</Text>
+            {isRegister ? (
+              <Pressable
+                style={styles.backLogin}
+                onPress={toggleMode}
+                hitSlop={8}
+                disabled={busy}
+              >
+                <Text style={styles.link}>← 返回登录</Text>
               </Pressable>
-              <Pressable onPress={toggleMode} hitSlop={8} disabled={busy}>
-                <Text style={styles.link}>
-                  {mode === 'login' ? '还没有账号？注册' : '已有账号？登录'}
-                </Text>
-              </Pressable>
-            </View>
+            ) : (
+              <View style={styles.links}>
+                <Pressable onPress={handleForgotPassword} hitSlop={8}>
+                  <Text style={styles.linkMuted}>忘记密码？</Text>
+                </Pressable>
+                <Pressable onPress={toggleMode} hitSlop={8} disabled={busy}>
+                  <Text style={styles.link}>还没有账号？注册</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
 
           <Text style={styles.footnote}>登录只识别身份，心意数据仍只存在这台设备。</Text>
@@ -178,6 +218,7 @@ const styles = StyleSheet.create({
   bodyContent: { flexGrow: 1, paddingHorizontal: 28, paddingTop: 44, paddingBottom: 28 },
 
   hero: { alignItems: 'center' },
+  heroCompact: { alignItems: 'center', paddingTop: 24 },
   sealOuter: {
     width: 112,
     height: 112,
@@ -225,7 +266,6 @@ const styles = StyleSheet.create({
   },
   error: { fontSize: 13, color: colors.camelliaDeep, marginTop: 10, lineHeight: 19 },
   notice: { fontSize: 13, color: colors.teal, marginTop: 10, lineHeight: 19 },
-  hint: { fontSize: 12, color: colors.ink3, textAlign: 'center', marginTop: 10 },
 
   btnPrimary: {
     height: 50,
@@ -245,6 +285,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 16,
   },
+  backLogin: { alignItems: 'center', marginTop: 20 },
   linkMuted: { fontSize: 13, color: colors.ink2 },
   link: { fontSize: 13, color: colors.camellia },
 

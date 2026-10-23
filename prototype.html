@@ -612,9 +612,28 @@
       <button class="btn btn-pine btn-block" style="border-radius:999px;height:48px" data-msg="登录 / 注册（原型演示）">开始使用</button>
       <div class="row" style="border:0;justify-content:space-between;padding-top:14px">
         <span style="font-size:13px;color:var(--ink-2)">忘记密码？</span>
-        <span style="font-size:13px;color:var(--camellia)">还没有账号？注册</span>
+        <span class="link" data-go="register" style="font-size:13px;color:var(--camellia)">还没有账号？注册</span>
       </div>
       <p style="font-size:12px;color:var(--ink-3);margin-top:30px">登录只识别身份，心意数据仍只存在这台设备。</p>
+    </div>
+  </div>
+</template>
+
+<!-- 注册页 -->
+<template id="screen-register">
+  <div class="screen">
+    <div class="body" style="text-align:center;padding-top:44px">
+      <div class="head-title" style="font-size:26px">注册心意管家</div>
+      <p style="font-size:13px;color:var(--ink-2);margin-top:8px">注册即可使用，无需邮箱验证</p>
+      <div style="text-align:left;margin-top:24px">
+        <div class="field"><label>邮箱</label><input placeholder="you@example.com" /></div>
+        <div class="field"><label>密码</label><input type="password" placeholder="至少 6 位" /></div>
+        <div class="field"><label>确认密码</label><input type="password" placeholder="再次输入密码" /></div>
+      </div>
+      <button class="btn btn-pine btn-block" style="border-radius:999px;height:48px" data-msg="注册成功（原型演示）">注册</button>
+      <div class="row" style="border:0;justify-content:center;padding-top:16px">
+        <span class="link" data-go="login" style="font-size:13px;color:var(--camellia)">← 返回登录</span>
+      </div>
     </div>
   </div>
 </template>
@@ -648,7 +667,7 @@
 </template>
 
 <script>
-  const SCREENS = ['home','person','content','card','history','settings','recycle','new','login'];
+  const SCREENS = ['home','person','content','card','history','settings','recycle','new','login','register'];
   const TABS = ['home','history','settings'];
   const OVERVIEW_ORDER = ['home','person','content','card','history','settings','recycle','new','login'];
   const STEPPER = { advance:{min:0,max:30,suffix:' 天'}, count:{min:1,max:5,suffix:' 条'} };
@@ -733,7 +752,7 @@
       item.className = 'ov-item';
       const label = document.createElement('div');
       label.className = 'ov-label';
-      const names = {home:'首页',person:'对象页',content:'心意内容页',card:'贺卡页',history:'心意记录页',settings:'设置页',recycle:'回收站',new:'新增对象页',login:'登录页'};
+      const names = {home:'首页',person:'对象页',content:'心意内容页',card:'贺卡页',history:'心意记录页',settings:'设置页',recycle:'回收站',new:'新增对象页',login:'登录页',register:'注册页'};
       label.textContent = names[id];
       const frame = document.createElement('div');
       frame.className = 'ov-frame';
