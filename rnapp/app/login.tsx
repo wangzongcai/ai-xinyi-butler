@@ -11,8 +11,8 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../src/auth/AuthContext';
-import { avatarText, providerLabel } from '../src/auth/account';
 import { describeAuthError } from '../src/auth/errors';
 import { colors, fonts } from '../src/theme';
 
@@ -31,7 +31,7 @@ function normalizePhone(raw: string): string | null {
 }
 
 export default function LoginScreen() {
-  const { account, sendEmailOtp, verifyEmailOtp, sendPhoneOtp, verifyPhoneOtp, signOut } = useAuth();
+  const { sendEmailOtp, verifyEmailOtp, sendPhoneOtp, verifyPhoneOtp } = useAuth();
 
   const [method, setMethod] = useState<Method | null>(null);
   const [phase, setPhase] = useState<Phase>('input');
@@ -123,29 +123,12 @@ export default function LoginScreen() {
       } else {
         await verifyPhoneOtp(normalizePhone(value) as string, token);
       }
-      // 登录成功后回到来源页（通常是设置页）
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/(tabs)/settings');
-      }
+      // 登录成功后进入首页（登录页会被路由守卫移除）
+      router.replace('/(tabs)');
     } catch (err) {
       setError(describeAuthError(err));
     } finally {
       setBusy(false);
-    }
-  }
-
-  function handleGuest() {
-    router.replace('/(tabs)');
-  }
-
-  async function handleSignOut() {
-    try {
-      await signOut();
-      setNotice('已退出登录，回到游客状态');
-    } catch (err) {
-      setError(describeAuthError(err));
     }
   }
 
@@ -158,35 +141,21 @@ export default function LoginScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.screen}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        style={styles.body}
-        contentContainerStyle={styles.bodyContent}
-        keyboardShouldPersistTaps="handled"
+    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView
+        style={styles.screen}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        <ScrollView
+          style={styles.body}
+          contentContainerStyle={styles.bodyContent}
+          keyboardShouldPersistTaps="handled"
+        >
+        <Text style={styles.title}>心意管家</Text>
+        <Text style={styles.subtitle}>登录 · 注册</Text>
         <Text style={styles.lead}>
-          登录只是为了记住你的身份。心意数据永远留在本机，不会上传、不会随账号同步。
+          登录只用于识别你的身份。心意数据永远留在本机，不会上传、不会随账号同步。
         </Text>
-
-        {account ? (
-          <View style={styles.account}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{avatarText(account.provider)}</Text>
-            </View>
-            <View style={styles.accountInfo}>
-              <Text style={styles.accountMain}>{account.displayName}</Text>
-              <Text style={styles.accountSub}>
-                已通过{providerLabel(account.provider)}登录，心意数据仍只存在这台设备
-              </Text>
-            </View>
-            <Pressable onPress={handleSignOut} hitSlop={8}>
-              <Text style={styles.accountAction}>退出登录</Text>
-            </Pressable>
-          </View>
-        ) : null}
 
         {method === null ? (
           <>
@@ -292,48 +261,19 @@ export default function LoginScreen() {
             </Pressable>
           </View>
         )}
-
-        <Pressable
-          style={({ pressed }) => [styles.btnGuest, pressed && styles.pressed]}
-          onPress={handleGuest}
-        >
-          <Text style={styles.btnGuestText}>先不登录，游客进入</Text>
-        </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper },
   body: { flex: 1 },
-  bodyContent: { paddingHorizontal: 22, paddingTop: 16, paddingBottom: 32 },
+  bodyContent: { paddingHorizontal: 22, paddingTop: 28, paddingBottom: 32 },
+  title: { fontFamily: fonts.hand, fontSize: 30, color: colors.ink },
+  subtitle: { fontSize: 13, color: colors.ink2, marginTop: 4, marginBottom: 16 },
   lead: { fontSize: 14, color: colors.ink2, lineHeight: 22 },
-
-  account: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 20,
-    padding: 14,
-    borderRadius: 14,
-    backgroundColor: colors.paper2,
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  avatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: colors.roseTint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { fontFamily: fonts.hand, fontSize: 18, color: colors.camellia },
-  accountInfo: { flex: 1, minWidth: 0 },
-  accountMain: { fontSize: 14.5, color: colors.ink },
-  accountSub: { fontSize: 12, color: colors.ink2, marginTop: 2 },
-  accountAction: { fontSize: 13, color: colors.camellia, fontWeight: '600' },
 
   secTitle: { fontFamily: fonts.hand, fontSize: 17, color: colors.ink, marginTop: 26, marginBottom: 8 },
 
@@ -394,17 +334,4 @@ const styles = StyleSheet.create({
   btnLinkWrap: { alignItems: 'center', paddingVertical: 10, marginTop: 6 },
   btnLink: { fontSize: 13.5, color: colors.camellia },
   btnLinkDisabled: { color: colors.ink3 },
-
-  btnGuest: {
-    marginTop: 28,
-    minHeight: 46,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.rose,
-    backgroundColor: colors.paper2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
-  btnGuestText: { color: colors.camellia, fontSize: 15, fontWeight: '600' },
 });

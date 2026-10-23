@@ -6,11 +6,11 @@ import { avatarText, providerLabel } from '../../src/auth/account';
 import { colors, fonts } from '../../src/theme';
 
 export default function SettingsScreen() {
-  const { account, loading, signOut } = useAuth();
+  const { account, signOut } = useAuth();
 
-  // 退出只清除账号身份，本机心意数据一条不动
+  // 退出只清除账号身份，本机心意数据一条不动；退出后路由守卫会带回登录页
   function handleSignOut() {
-    Alert.alert('退出登录', '退出后回到游客状态，本机心意数据不会删除。', [
+    Alert.alert('退出登录', '退出后需要重新登录才能使用，本机心意数据不会删除。', [
       { text: '取消', style: 'cancel' },
       {
         text: '退出',
@@ -75,31 +75,20 @@ export default function SettingsScreen() {
         <Text style={styles.secT}>账号</Text>
         <View style={styles.account}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{account ? avatarText(account.provider) : '客'}</Text>
+            <Text style={styles.avatarText}>{account ? avatarText(account.provider) : '信'}</Text>
           </View>
           <View style={styles.info}>
-            <Text style={styles.infoMain}>
-              {loading ? '正在恢复登录状态…' : account ? account.displayName : '未登录'}
-            </Text>
+            <Text style={styles.infoMain}>{account ? account.displayName : '已登录'}</Text>
             <Text style={styles.infoSub}>
               {account
                 ? `已通过${providerLabel(account.provider)}登录 · 心意数据仍只存在这台设备`
-                : '登录后，心意数据仍只存在这台设备'}
+                : '心意数据仍只存在这台设备'}
             </Text>
           </View>
         </View>
-        {account ? (
-          <Pressable style={[styles.btnGhost, { marginTop: 14 }]} onPress={handleSignOut}>
-            <Text style={styles.btnGhostText}>退出登录</Text>
-          </Pressable>
-        ) : (
-          <Pressable
-            style={[styles.btnGhost, { marginTop: 14 }]}
-            onPress={() => router.push('/login')}
-          >
-            <Text style={styles.btnGhostText}>登录或注册</Text>
-          </Pressable>
-        )}
+        <Pressable style={[styles.btnGhost, { marginTop: 14 }]} onPress={handleSignOut}>
+          <Text style={styles.btnGhostText}>退出登录</Text>
+        </Pressable>
 
         {/* 其他 */}
         <Text style={styles.secT}>其他</Text>

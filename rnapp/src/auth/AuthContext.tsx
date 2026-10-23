@@ -14,7 +14,7 @@ import { accountFromUser } from './account';
 import { clearAuthCache, loadAuthCache, saveAuthCache, type CachedAccount } from '../data/authCache';
 
 type AuthContextValue = {
-  /** 当前 Supabase 会话；null 表示游客 */
+  /** 当前 Supabase 会话；null 表示未登录 */
   session: Session | null;
   user: User | null;
   /** 本机缓存的展示用账号信息（掩码） */
