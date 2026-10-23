@@ -77,6 +77,15 @@
 - 完成后用户能看到：账号管理页显示账号，可退出登录或注销账号；杀进程重开仍是登录态；退出后数据一条不少。
 - 依赖：M2-03/M2-04/M2-05/M2-06 中至少一种登录方式可用（账号区 UI 骨架可随 M1-02 先行）。
 
+### M2-08 找回密码（公网静态落地页）
+- 做什么：登录页「忘记密码？」改为输入邮箱发送重置邮件；邮件链接打开公网静态页 `web/index.html` 设置新密码，改完回 App 登录。**不依赖 App 深链**。
+  - 页面单文件零依赖：解析链接里的 `#access_token=…&type=recovery`，调 `PUT /auth/v1/user` 改密码。
+  - 托管在 GitHub Pages，`.github/workflows/pages.yml` 在 `web/**` 变动时自动发布。
+  - Supabase → Authentication → URL Configuration：Site URL 指向该页面，Redirect URLs 加通配。
+- 涉及文件：`web/index.html`、`.github/workflows/pages.yml`、`rnapp/app/login.tsx`、`rnapp/src/auth/AuthContext.tsx`、`rnapp/src/auth/supabase.ts`。
+- 完成后用户能看到：点「忘记密码？」输入邮箱 → 收到邮件 → 点链接在网页上设新密码 → 用新密码登录。
+- 依赖：M2-04；邮件通道需能投递（当前卡在 Resend 域名验证，见 plan.md 7.5）。
+
 ---
 
 ## 里程碑三：联系人管理（心意对象管理，spec 功能 1、2）
@@ -399,6 +408,7 @@
 | M2-05 | 第三方登录：微信 |
 | M2-06 | 第三方登录：Apple（iOS） |
 | M2-07 | 登录态保持、账号区展示与退出登录 |
+| M2-08 | 找回密码（公网静态落地页） |
 | M3-01 | 接入 expo-sqlite 并建库建表 |
 | M3-02 | 数据访问层（Repository 接口） |
 | M3-03 | 日期计算工具：下一次发生日期 |

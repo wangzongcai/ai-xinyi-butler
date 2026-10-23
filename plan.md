@@ -96,14 +96,18 @@ app/
   content/[id].tsx     → 心意内容页（id 为对象；通用节日场景带节日参数）
   card/[id].tsx        → 贺卡页
   recycle-bin.tsx      → 回收站页
-  login.tsx            → 登录页（未登录时的全屏门禁，登录成功进入提醒页）
+  login.tsx            → 登录页（未登录时的全屏门禁；含「登录 / 注册 / 找回密码」三种模式）
 ```
+
+> 仓库根目录另有 `web/`：承载重置密码落地页，通过 GitHub Actions 发布到 GitHub Pages
+> （`.github/workflows/pages.yml`）。它不属于 App 路由，是邮件链接跳转的公网页面。
 
 ### 3.2 入口设计
 
 | 入口 | 目标 | 说明 |
 | --- | --- | --- |
 | 正常启动 | 提醒页（已登录）/ 登录页（未登录） | 未登录时强制登录，已登录默认落在「提醒」Tab |
+| 登录页「忘记密码？」 | 登录页的找回模式 | 输入注册邮箱发送重置邮件；邮件链接打开公网静态页设置新密码，改完回 App 登录 |
 | 设置页「退出登录」 | 登录页 | 退出后路由守卫自动回到登录页；本机心意数据不删除 |
 | 账号管理「注销账号」 | 登录页 | 经 delete-account 删除服务端身份后退出；本机数据保留 |
 | 点开推送通知 | 对应对象的**心意内容页** | 通知 payload 携带对象 id 与日子信息，深链直达（spec 功能 3 验收要求） |
@@ -284,7 +288,7 @@ Supabase Auth 接入；登录页（邮箱 + 密码注册/登录，注册即用�
 
 ### 7.5 仍待处理
 
-1. 如需「找回密码」或邮件能力，再配置 Gmail SMTP（Google 应用专用密码），并启用/推送邮件模板。
+1. 找回密码的页面与代码已完成，但**邮件实际投递仍受阻**：Supabase 已接 Resend 自定义 SMTP（`smtp.resend.com:465`，用户 `resend`），发件人是未验证域名的 `onboarding@resend.dev`。Resend 只允许该测试域名投递到 Resend 账号注册邮箱（`wangzongcai0103@gmail.com`），发给其他收件人一律 403 → Supabase 报 `Error sending recovery email`。**解决方式：在 Resend 验证自有域名，并把发件人改成该域名下的地址**；在此之前，找回密码只对 Gmail 测试账号可用。
 2. 短信通道、微信开放平台资质、Apple Developer 账号到位后完成 M2-03 / M2-05 / M2-06。
 
 ### 7.6 4 Tab 改版与设置页重构（2026-10-23，按小康拍板）
@@ -295,3 +299,14 @@ Supabase Auth 接入；登录页（邮箱 + 密码注册/登录，注册即用�
 - 规格变更（spec 已同步）：内置节日 8 → **12 个**（新增元宵节、端午节、七夕、重阳节，均按通用节日），节日可关注/取消关注；贺卡增加署名开关；功能 11 增加账号管理与注销账号。
 - 已实现但暂为内存态：设置偏好与节日关注状态由 `SettingsContext` 承载（`rnapp/src/settings/`），M3 settings 表与 Repository 落地后替换为持久化；推送通知开关的系统权限对接在 M6-01。
 - 「内容开关」「隐私说明」经小康确认第一版不做。
+
+### 7.7 找回密码：公网静态落地页（2026-10-23，按小康拍板）
+
+- **方案**：不依赖 App 深链，也不依赖 `xinyibutler://` scheme。重置邮件里的链接指向一个公网静态页，用户在那里填新密码，改完回 App 登录。
+- **页面**：[web/index.html](web/index.html)。单文件、零第三方依赖（只用 `fetch` 调 Supabase Auth REST），配色沿用 `rnapp/src/theme.ts` 的山茶 + 檀墨。解析链接 `#access_token=…&type=recovery`，调 `PUT /auth/v1/user` 改密码。
+- **托管**：GitHub Pages（仓库为 public，免费且无需域名）。`.github/workflows/pages.yml` 在推送 `main` 且 `web/**` 变化时自动发布。
+  线上地址：`https://wangzongcai.github.io/ai-xinyi-butler/`
+  （Netlify 站点 `xinyi-butler-app` 也已创建，但该团队开启了账号级 SSO 保护，公网访问返回 401；擅自改账号安全设置超出授权范围，故改用 GitHub Pages。）
+- **App 端**：登录页新增 `forgot` 模式（邮箱输入 → `resetPasswordForEmail`），`redirectTo` 取 `EXPO_PUBLIC_RESET_PASSWORD_URL`；`AuthContext` 新增 `requestPasswordReset`。
+- **Supabase 侧需手动配置**（Dashboard → Authentication → URL Configuration）：Site URL 改为上述 Pages 地址，Redirect URLs 加入 `https://wangzongcai.github.io/ai-xinyi-butler/**`。未配置时 Supabase 会忽略 `redirectTo`，邮件链接无法跳转到新页面。
+- **已知限制**：邮件投递仍受 Resend 域名限制（见 7.5 第 1 条）。
