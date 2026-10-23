@@ -23,6 +23,9 @@ export function describeAuthError(error: unknown): string {
   if (lower.includes('user already registered')) {
     return '该邮箱已注册，请直接登录';
   }
+  if (lower.includes('user not found')) {
+    return '该邮箱还没有注册，请先注册';
+  }
   if (lower.includes('password should be at least') || lower.includes('weak password')) {
     return '密码至少 6 位，请换一个更安全的密码';
   }

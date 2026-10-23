@@ -12,6 +12,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+// 重置密码落地页：公网静态托管的重置页（web/index.html）。
+// 未配置时留空，此时 Supabase 会回退到项目的 Site URL。
+export const resetPasswordUrl = process.env.EXPO_PUBLIC_RESET_PASSWORD_URL;
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     // 令牌存进系统安全存储（iOS Keychain / Android Keystore），并自动分片

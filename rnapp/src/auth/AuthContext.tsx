@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { AppState } from 'react-native';
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase } from './supabase';
+import { resetPasswordUrl, supabase } from './supabase';
 import { accountFromUser } from './account';
 import { clearAuthCache, loadAuthCache, saveAuthCache, type CachedAccount } from '../data/authCache';
 
@@ -36,6 +36,8 @@ type AuthContextValue = {
   sendPhoneOtp: (phone: string) => Promise<void>;
   /** 校验手机验证码并建立会话 */
   verifyPhoneOtp: (phone: string, token: string) => Promise<void>;
+  /** 发送找回密码邮件；邮件里的链接会打开公网静态页，在那里设置新密码 */
+  requestPasswordReset: (email: string) => Promise<void>;
   /** 退出登录：只清除账号身份，不碰本机心意数据 */
   signOut: () => Promise<void>;
   /** 注销账号：调用 delete-account 函数删除服务端身份，再退出登录 */
@@ -141,6 +143,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   }, []);
 
+  const requestPasswordReset = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      // 指向公网静态重置页；用户在那里填新密码，改完回 App 登录
+      redirectTo: resetPasswordUrl || undefined,
+    });
+    if (error) throw error;
+  }, []);
+
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -166,6 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyEmailOtp,
       sendPhoneOtp,
       verifyPhoneOtp,
+      requestPasswordReset,
       signOut,
       deleteAccount,
     }),
@@ -179,6 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       verifyEmailOtp,
       sendPhoneOtp,
       verifyPhoneOtp,
+      requestPasswordReset,
       signOut,
       deleteAccount,
     ]

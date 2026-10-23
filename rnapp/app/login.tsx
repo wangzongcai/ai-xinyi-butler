@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -15,13 +14,13 @@ import { useAuth } from '../src/auth/AuthContext';
 import { describeAuthError } from '../src/auth/errors';
 import { colors, fonts } from '../src/theme';
 
-type Mode = 'login' | 'register';
+type Mode = 'login' | 'register' | 'forgot';
 
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
 const MIN_PASSWORD_LENGTH = 6;
 
 export default function LoginScreen() {
-  const { signInWithPassword, signUpWithPassword } = useAuth();
+  const { signInWithPassword, signUpWithPassword, requestPasswordReset } = useAuth();
 
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
@@ -32,12 +31,18 @@ export default function LoginScreen() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const isRegister = mode === 'register';
+  const isForgot = mode === 'forgot';
 
-  function toggleMode() {
-    setMode((value) => (value === 'login' ? 'register' : 'login'));
+  function goTo(next: Mode) {
+    setMode(next);
     setError(null);
     setNotice(null);
+    setPassword('');
     setConfirmPassword('');
+  }
+
+  function toggleMode() {
+    goTo(isRegister ? 'login' : 'register');
   }
 
   async function handleSubmit() {
@@ -48,6 +53,23 @@ export default function LoginScreen() {
       setError('请输入正确的邮箱地址');
       return;
     }
+
+    // 找回密码只发邮件，不需要校验密码
+    if (isForgot) {
+      setBusy(true);
+      setError(null);
+      setNotice(null);
+      try {
+        await requestPasswordReset(emailValue);
+        setNotice('重置密码的邮件已发出，请到邮箱查收（没收到的话看看垃圾箱）');
+      } catch (err) {
+        setError(describeAuthError(err));
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
     if (password.length < MIN_PASSWORD_LENGTH) {
       setError(`密码至少 ${MIN_PASSWORD_LENGTH} 位`);
       return;
@@ -79,10 +101,6 @@ export default function LoginScreen() {
     }
   }
 
-  function handleForgotPassword() {
-    Alert.alert('找回密码', '邮件服务尚未配置，暂时无法通过邮件重置密码。请先重新注册或联系管理员。');
-  }
-
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
@@ -99,6 +117,11 @@ export default function LoginScreen() {
             <View style={styles.heroCompact}>
               <Text style={styles.brand}>注册心意管家</Text>
               <Text style={styles.tagline}>注册即可使用，无需邮箱验证</Text>
+            </View>
+          ) : isForgot ? (
+            <View style={styles.heroCompact}>
+              <Text style={styles.brand}>找回密码</Text>
+              <Text style={styles.tagline}>输入注册时的邮箱，我们会发一封重置密码的邮件给你</Text>
             </View>
           ) : (
             <View style={styles.hero}>
@@ -131,21 +154,25 @@ export default function LoginScreen() {
               returnKeyType="next"
             />
 
-            <Text style={styles.label}>密码</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              editable={!busy}
-              placeholder={`至少 ${MIN_PASSWORD_LENGTH} 位`}
-              placeholderTextColor={colors.ink3}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete={isRegister ? 'new-password' : 'current-password'}
-              returnKeyType={isRegister ? 'next' : 'done'}
-              onSubmitEditing={isRegister ? undefined : handleSubmit}
-            />
+            {isForgot ? null : (
+              <>
+                <Text style={styles.label}>密码</Text>
+                <TextInput
+                  style={styles.input}
+                  value={password}
+                  onChangeText={setPassword}
+                  editable={!busy}
+                  placeholder={`至少 ${MIN_PASSWORD_LENGTH} 位`}
+                  placeholderTextColor={colors.ink3}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete={isRegister ? 'new-password' : 'current-password'}
+                  returnKeyType={isRegister ? 'next' : 'done'}
+                  onSubmitEditing={isRegister ? undefined : handleSubmit}
+                />
+              </>
+            )}
 
             {isRegister ? (
               <>
@@ -180,14 +207,14 @@ export default function LoginScreen() {
               disabled={busy}
             >
               <Text style={styles.btnPrimaryText}>
-                {busy ? '请稍候…' : isRegister ? '注册' : '开始使用'}
+                {busy ? '请稍候…' : isForgot ? '发送重置邮件' : isRegister ? '注册' : '开始使用'}
               </Text>
             </Pressable>
 
-            {isRegister ? (
+            {isRegister || isForgot ? (
               <Pressable
                 style={styles.backLogin}
-                onPress={toggleMode}
+                onPress={() => goTo('login')}
                 hitSlop={8}
                 disabled={busy}
               >
@@ -195,7 +222,7 @@ export default function LoginScreen() {
               </Pressable>
             ) : (
               <View style={styles.links}>
-                <Pressable onPress={handleForgotPassword} hitSlop={8}>
+                <Pressable onPress={() => goTo('forgot')} hitSlop={8} disabled={busy}>
                   <Text style={styles.linkMuted}>忘记密码？</Text>
                 </Pressable>
                 <Pressable onPress={toggleMode} hitSlop={8} disabled={busy}>

@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow" />
+<title>重设密码 · 心意管家</title>
+<style>
+  /* 与 App 的「山茶 + 檀墨」配色保持一致（见 rnapp/src/theme.ts） */
+  :root {
+    --page: #F3E7E7;
+    --paper: #F9EEED;
+    --paper2: #FDF8F7;
+    --ink: #3A2627;
+    --ink2: #705554;
+    --ink3: #9C817F;
+    --camellia: #CE7480;
+    --camellia-deep: #B85E6B;
+    --rose: #E2B7BD;
+    --teal: #83AAA3;
+    --line: #E5CECC;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--page);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 20px;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--paper);
+    border-radius: 18px;
+    padding: 36px 26px 30px;
+    box-shadow: 0 12px 36px rgba(90, 45, 52, 0.10);
+  }
+
+  /* 印章式 Logo，和 App 登录页呼应 */
+  .seal {
+    width: 82px;
+    height: 82px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    border: 1.5px solid var(--camellia);
+    background: var(--paper2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .seal-inner {
+    width: 66px;
+    height: 66px;
+    border-radius: 50%;
+    border: 1px dashed var(--rose);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .seal-inner span {
+    font-family: "Kaiti SC", "STKaiti", "KaiTi", serif;
+    font-size: 19px;
+    line-height: 1.15;
+    color: var(--camellia);
+    letter-spacing: 1px;
+  }
+
+  h1 {
+    margin: 0 0 10px;
+    font-family: "Kaiti SC", "STKaiti", "KaiTi", serif;
+    font-size: 26px;
+    font-weight: normal;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+
+  .sub {
+    margin: 0 0 26px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--ink2);
+    text-align: center;
+  }
+  .sub b { color: var(--ink); font-weight: 600; word-break: break-all; }
+
+  label {
+    display: block;
+    margin: 16px 0 7px;
+    font-size: 13px;
+    color: var(--ink2);
+  }
+
+  input {
+    width: 100%;
+    height: 48px;
+    padding: 0 14px;
+    font-size: 15px;
+    color: var(--ink);
+    background: var(--paper2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  input:focus { border-color: var(--camellia); }
+
+  button {
+    width: 100%;
+    height: 50px;
+    margin-top: 24px;
+    border: 0;
+    border-radius: 25px;
+    background: var(--camellia);
+    color: #FCF4F4;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  button:hover:not(:disabled) { opacity: .9; }
+  button:disabled { opacity: .55; cursor: default; }
+
+  .msg {
+    margin-top: 16px;
+    font-size: 13px;
+    line-height: 1.7;
+    min-height: 1px;
+  }
+  .msg.error { color: var(--camellia-deep); }
+  .msg.ok { color: var(--teal); }
+
+  .hint {
+    margin-top: 26px;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--ink3);
+    text-align: center;
+  }
+
+  .icon {
+    display: block;
+    margin: 0 auto 16px;
+    font-size: 40px;
+    text-align: center;
+    line-height: 1;
+  }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="seal">
+      <div class="seal-inner"><span>心意<br />管家</span></div>
+    </div>
+
+    <!-- 1. 正常：填写新密码 -->
+    <section id="view-form" hidden>
+      <h1>重设密码</h1>
+      <p class="sub">正在为 <b id="account">这个账号</b> 设置新密码</p>
+      <form id="form" novalidate>
+        <label for="pwd">新密码</label>
+        <input id="pwd" type="password" placeholder="至少 6 位" autocomplete="new-password" required />
+        <label for="pwd2">确认新密码</label>
+        <input id="pwd2" type="password" placeholder="再次输入新密码" autocomplete="new-password" required />
+        <button id="submit" type="submit">确认修改</button>
+        <div class="msg" id="msg"></div>
+      </form>
+      <p class="hint">密码修改后，请回到「心意管家」App 用新密码登录。</p>
+    </section>
+
+    <!-- 2. 成功 -->
+    <section id="view-done" hidden>
+      <span class="icon">✓</span>
+      <h1>密码已更新</h1>
+      <p class="sub">请回到「心意管家」App，用新密码登录。<br />本机的心意数据不受影响。</p>
+    </section>
+
+    <!-- 3. 链接无效 / 已过期 -->
+    <section id="view-invalid" hidden>
+      <span class="icon">✕</span>
+      <h1>链接已失效</h1>
+      <p class="sub" id="invalid-text">
+        这个重置链接可能已经用过或已过期（有效期 24 小时）。<br />
+        请回到 App 登录页，重新点击「忘记密码？」获取新的链接。
+      </p>
+    </section>
+  </main>
+
+<script>
+(function () {
+  'use strict';
+
+  // Supabase 项目配置（anon key 是公开可用的，与 App 内置的一致）
+  var SUPABASE_URL = 'https://kszmreeiuqplcanfuijr.supabase.co';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtzem1yZWVpdXFwbGNhbmZ1aWpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3MTk3MDQsImV4cCI6MjEwODI5NTcwNH0.jGIw-zRGadVZ8mZKpCP7Df4CNR2szVo7O-Xa0GuMapM';
+
+  var MIN_LENGTH = 6;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var viewForm = $('view-form');
+  var viewDone = $('view-done');
+  var viewInvalid = $('view-invalid');
+
+  function show(el) {
+    [viewForm, viewDone, viewInvalid].forEach(function (v) { v.hidden = (v !== el); });
+  }
+
+  // Supabase 的重置链接把令牌放在 # 后面（implicit flow），形如：
+  // #access_token=xxx&refresh_token=yyy&expires_in=3600&token_type=bearer&type=recovery
+  function readHash() {
+    var raw = (window.location.hash || '').replace(/^#/, '');
+    if (!raw) return {};
+    return Object.fromEntries(new URLSearchParams(raw).entries());
+  }
+
+  // 从 JWT 里解出邮箱，用来回显「正在为 xxx 设置密码」
+  function emailFromToken(token) {
+    try {
+      var part = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      var payload = JSON.parse(decodeURIComponent(escape(atob(part))));
+      return payload.email || '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  var hash = readHash();
+  var accessToken = hash.access_token || '';
+
+  // 链接过期或已被使用过，Supabase 会回跳带 error 参数
+  if (!accessToken || (hash.type && hash.type !== 'recovery')) {
+    show(viewInvalid);
+    if (hash.error_code === 'otp_expired' || hash.error === 'access_denied') {
+      $('invalid-text').innerHTML = '这个重置链接已过期或已经被使用过。<br />请回到 App 登录页，重新点击「忘记密码？」获取新的链接。';
+    }
+    return;
+  }
+
+  var email = emailFromToken(accessToken);
+  if (email) $('account').textContent = email;
+
+  show(viewForm);
+
+  // 令牌已在内存中，顺手清掉地址栏里的 #，避免被刷新或误分享
+  try {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  } catch (e) { /* 某些内置浏览器不支持，忽略 */ }
+
+  var msg = $('msg');
+  var submitBtn = $('submit');
+  var busy = false;
+
+  function setMsg(text, kind) {
+    msg.textContent = text || '';
+    msg.className = 'msg' + (kind ? ' ' + kind : '');
+  }
+
+  $('form').addEventListener('submit', async function (event) {
+    event.preventDefault();
+    if (busy) return;
+
+    var pwd = $('pwd').value;
+    var pwd2 = $('pwd2').value;
+
+    if (pwd.length < MIN_LENGTH) {
+      setMsg('密码至少 ' + MIN_LENGTH + ' 位', 'error');
+      return;
+    }
+    if (pwd !== pwd2) {
+      setMsg('两次输入的密码不一致', 'error');
+      return;
+    }
+
+    busy = true;
+    submitBtn.disabled = true;
+    submitBtn.textContent = '正在提交…';
+    setMsg('');
+
+    try {
+      var res = await fetch(SUPABASE_URL + '/auth/v1/user', {
+        method: 'PUT',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + accessToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ password: pwd })
+      });
+
+      if (res.ok) {
+        accessToken = '';
+        show(viewDone);
+        return;
+      }
+
+      var data = await res.json().catch(function () { return {}; });
+      var code = data.error_code || data.code || '';
+      var text = data.msg || data.message || '';
+
+      if (code === 'weak_password' || /password should be at least/i.test(text)) {
+        setMsg('密码强度不够，请至少输入 ' + MIN_LENGTH + ' 位', 'error');
+      } else if (res.status === 401 || /token|jwt|expired/i.test(code + text)) {
+        setMsg('登录凭证已失效，请回到 App 重新获取重置链接', 'error');
+      } else {
+        setMsg('修改失败，请稍后重试', 'error');
+      }
+    } catch (err) {
+      setMsg('网络连接失败，请检查网络后重试', 'error');
+    } finally {
+      busy = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = '确认修改';
+    }
+  });
+})();
+</script>
+</body>
+</html>
