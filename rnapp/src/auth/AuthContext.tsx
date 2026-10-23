@@ -38,6 +38,8 @@ type AuthContextValue = {
   verifyPhoneOtp: (phone: string, token: string) => Promise<void>;
   /** 退出登录：只清除账号身份，不碰本机心意数据 */
   signOut: () => Promise<void>;
+  /** 注销账号：调用 delete-account 函数删除服务端身份，再退出登录 */
+  deleteAccount: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -144,6 +146,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    // Edge Function 会校验当前用户 JWT，只允许删除自己的账号
+    const { error } = await supabase.functions.invoke('delete-account');
+    if (error) throw error;
+    const { error: signOutError } = await supabase.auth.signOut();
+    if (signOutError) throw signOutError;
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       session,
@@ -157,6 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sendPhoneOtp,
       verifyPhoneOtp,
       signOut,
+      deleteAccount,
     }),
     [
       session,
@@ -169,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sendPhoneOtp,
       verifyPhoneOtp,
       signOut,
+      deleteAccount,
     ]
   );
 

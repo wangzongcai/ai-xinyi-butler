@@ -10,9 +10,9 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.screen}>
-      <PageHeader title="心意记录" subtitle="看看哪些送达，哪些还欠着" />
+      <PageHeader title="历史" subtitle="看看哪些心意送达，哪些还欠着" />
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
-        {/* 分段筛选（占位，里程碑五接数据） */}
+        {/* 分段筛选（占位，M10 接数据） */}
         <View style={styles.seg}>
           {FILTERS.map((f) => (
             <Pressable key={f} style={[styles.segBtn, filter === f && styles.segBtnOn]} onPress={() => setFilter(f)}>

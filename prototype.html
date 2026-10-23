@@ -274,7 +274,7 @@
     </div>
     <div>
       <h2>交互原型</h2>
-      <p class="hint">这是可点击的屏面。底部三个 Tab 分别是首页、心意记录、设置；点对象行进入对象页，再进心意内容页与贺卡页。总览区下方可以一次看全所有屏面。</p>
+      <p class="hint">这是可点击的屏面。底部四个 Tab 分别是提醒、联系人、历史、设置；点对象行进入对象页，再进心意内容页与贺卡页。总览区下方可以一次看全所有屏面。</p>
     </div>
   </section>
 
@@ -287,11 +287,11 @@
 
 <!-- ============ 屏面模板 ============ -->
 
-<!-- 首页 -->
+<!-- 提醒页 -->
 <template id="screen-home">
   <div class="screen">
     <div class="head">
-      <div class="titles"><div class="app">心意管家</div></div>
+      <div class="titles"><div class="head-title">提醒</div></div>
       <div class="seal">心</div>
     </div>
     <div class="body">
@@ -305,25 +305,6 @@
         <div class="pc-sub">把祝福、礼物和贺卡都提前备好</div>
         <div style="margin-top:16px">
           <span class="btn btn-pine" data-go="content">去准备</span>
-        </div>
-      </div>
-
-      <div class="sec">
-        <div class="sec-t">重要的人 <small>点击进入</small></div>
-        <div class="list">
-          <button class="row" data-go="person">
-            <div><div class="row-name">妈妈</div><div class="row-meta">家人 ， 生日 10月26日</div></div>
-            <div class="row-side"><span class="pill warm">3 天</span></div>
-          </button>
-          <button class="row" data-go="person">
-            <div><div class="row-name">老徐</div><div class="row-meta">挚友 ， 结婚纪念 11月2日</div></div>
-            <div class="row-side"><span class="pill">10 天</span></div>
-          </button>
-          <button class="row" data-go="person">
-            <div><div class="row-name">小满</div><div class="row-meta">伴侣 ， 相识周年 12月1日</div></div>
-            <div class="row-side"><span class="pill">38 天</span></div>
-          </button>
-          <button class="row row-add" data-go="new"><span class="plus">＋</span>添加一位想记住的人</button>
         </div>
       </div>
 
@@ -348,11 +329,62 @@
     <footer class="tabbar">
       <button class="tab on" data-tab="home">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>
-        首页
+        提醒
+      </button>
+      <button class="tab" data-tab="contacts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.4"/><path d="M3.5 19c.6-3 2.7-4.6 5.5-4.6S13.9 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.6c2 .2 3.6 1.5 4.2 4.4"/></svg>
+        联系人
       </button>
       <button class="tab" data-tab="history">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h14"/></svg>
-        心意记录
+        历史
+      </button>
+      <button class="tab" data-tab="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>
+        设置
+      </button>
+    </footer>
+  </div>
+</template>
+
+<!-- 联系人页 -->
+<template id="screen-contacts">
+  <div class="screen">
+    <div class="head">
+      <div class="titles"><div class="head-title">联系人</div><div class="sub">记住每一位在乎的人</div></div>
+    </div>
+    <div class="body">
+      <div class="sec">
+        <div class="sec-t">重要的人 <small>点击进入</small></div>
+        <div class="list">
+          <button class="row" data-go="person">
+            <div><div class="row-name">妈妈</div><div class="row-meta">家人 ， 生日 10月26日</div></div>
+            <div class="row-side"><span class="pill warm">3 天</span></div>
+          </button>
+          <button class="row" data-go="person">
+            <div><div class="row-name">老徐</div><div class="row-meta">挚友 ， 结婚纪念 11月2日</div></div>
+            <div class="row-side"><span class="pill">10 天</span></div>
+          </button>
+          <button class="row" data-go="person">
+            <div><div class="row-name">小满</div><div class="row-meta">伴侣 ， 相识周年 12月1日</div></div>
+            <div class="row-side"><span class="pill">38 天</span></div>
+          </button>
+          <button class="row row-add" data-go="new"><span class="plus">＋</span>添加一位想记住的人</button>
+        </div>
+      </div>
+    </div>
+    <footer class="tabbar">
+      <button class="tab" data-tab="home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>
+        提醒
+      </button>
+      <button class="tab on" data-tab="contacts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.4"/><path d="M3.5 19c.6-3 2.7-4.6 5.5-4.6S13.9 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.6c2 .2 3.6 1.5 4.2 4.4"/></svg>
+        联系人
+      </button>
+      <button class="tab" data-tab="history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h14"/></svg>
+        历史
       </button>
       <button class="tab" data-tab="settings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>
@@ -476,10 +508,10 @@
   </div>
 </template>
 
-<!-- 心意记录页 -->
+<!-- 历史页 -->
 <template id="screen-history">
   <div class="screen">
-    <div class="head"><div class="titles"><div class="head-title">心意记录</div><div class="sub">看看哪些送达，哪些还欠着</div></div></div>
+    <div class="head"><div class="titles"><div class="head-title">历史</div><div class="sub">看看哪些心意送达，哪些还欠着</div></div></div>
     <div class="body">
       <div class="seg">
         <button class="on" data-filter="全部">全部</button>
@@ -507,11 +539,15 @@
     <footer class="tabbar">
       <button class="tab" data-tab="home">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>
-        首页
+        提醒
+      </button>
+      <button class="tab" data-tab="contacts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.4"/><path d="M3.5 19c.6-3 2.7-4.6 5.5-4.6S13.9 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.6c2 .2 3.6 1.5 4.2 4.4"/></svg>
+        联系人
       </button>
       <button class="tab on" data-tab="history">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h14"/></svg>
-        心意记录
+        历史
       </button>
       <button class="tab" data-tab="settings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>
@@ -524,52 +560,49 @@
 <!-- 设置页 -->
 <template id="screen-settings">
   <div class="screen">
-    <div class="head"><div class="titles"><div class="head-title">设置</div><div class="sub">提醒与生成的偏好</div></div></div>
+    <div class="head"><div class="titles"><div class="head-title">设置</div><div class="sub">按你的节奏，安排每一次提醒</div></div></div>
     <div class="body">
-      <div class="setting">
-        <div style="display:flex;align-items:center">
-          <div style="flex:1"><div class="k">提前提醒天数</div><div class="h">全局生效 ， 0 表示只在当天</div></div>
-          <div class="stepper"><button data-dec="advance" aria-label="减少">−</button><span class="v" id="advance-v">3 天</span><button data-inc="advance" aria-label="增加">＋</button></div>
-        </div>
-      </div>
-      <div class="setting">
-        <div style="display:flex;align-items:center">
-          <div style="flex:1"><div class="k">每次生成祝福</div><div class="h">可调 1 到 5 条</div></div>
-          <div class="stepper"><button data-dec="count" aria-label="减少">−</button><span class="v" id="count-v">3 条</span><button data-inc="count" aria-label="增加">＋</button></div>
-        </div>
-      </div>
-      <div class="setting">
-        <div class="k" style="margin-bottom:10px">礼物「去看看」跳转平台</div>
-        <div class="seg pine" id="platform-seg">
-          <button class="on" data-platform="淘宝">淘宝</button>
-          <button data-platform="京东">京东</button>
-        </div>
-      </div>
-
       <div class="sec">
-        <div class="sec-t">账号</div>
-        <div class="account">
-          <div class="avatar">客</div>
-          <div class="info">未登录<small>登录后，心意数据仍只存在这台设备</small></div>
-        </div>
-        <button class="btn btn-ghost btn-block" data-go="login" style="margin-top:14px">登录或注册</button>
-      </div>
-
-      <div class="sec">
-        <div class="sec-t">其他</div>
+        <div class="sec-t">提醒</div>
         <div class="list">
-          <button class="row" data-go="recycle"><div class="row-name" style="font-size:15px">回收站</div><div class="row-meta">已删除对象保留 30 天可恢复</div></div>
+          <button class="row" data-msg="提醒设置（原型演示）">
+            <div style="flex:1"><div class="row-name" style="font-size:15px">提醒设置</div></div>
+            <div class="row-meta">提前3天 · 09:00</div>
+          </button>
+          <button class="row"><div style="flex:1"><div class="row-name" style="font-size:15px">推送通知</div></div></button>
         </div>
+      </div>
+      <div class="sec">
+        <div class="sec-t">心意内容</div>
+        <div class="list">
+          <button class="row"><div style="flex:1"><div class="row-name" style="font-size:15px">祝福语设置</div></div><div class="row-meta">每次3条</div></button>
+          <button class="row"><div style="flex:1"><div class="row-name" style="font-size:15px">礼物设置</div></div><div class="row-meta">淘宝</div></button>
+          <button class="row"><div style="flex:1"><div class="row-name" style="font-size:15px">贺卡设置</div></div><div class="row-meta">署名关</div></button>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-t">通用</div>
+        <div class="list">
+          <button class="row"><div style="flex:1"><div class="row-name" style="font-size:15px">节日设置</div></div><div class="row-meta">已关注12个</div></button>
+          <button class="row" data-go="recycle"><div style="flex:1"><div class="row-name" style="font-size:15px">回收站</div></div><div class="row-meta">已删除保留 30 天</div></button>
+        </div>
+      </div>
+      <div class="sec" style="background:#FBF4E2;border:1px solid #E5D6AA;border-radius:14px;padding:12px">
+        <button class="row" data-msg="账号管理（原型演示）" style="border:0"><div style="flex:1"><div class="row-name" style="font-size:15px;color:var(--gold)">账号管理</div></div></button>
       </div>
     </div>
     <footer class="tabbar">
       <button class="tab" data-tab="home">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>
-        首页
+        提醒
+      </button>
+      <button class="tab" data-tab="contacts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.4"/><path d="M3.5 19c.6-3 2.7-4.6 5.5-4.6S13.9 16 14.5 19"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.6c2 .2 3.6 1.5 4.2 4.4"/></svg>
+        联系人
       </button>
       <button class="tab" data-tab="history">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 6h14M5 12h14M5 18h14"/></svg>
-        心意记录
+        历史
       </button>
       <button class="tab on" data-tab="settings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>
@@ -667,9 +700,9 @@
 </template>
 
 <script>
-  const SCREENS = ['home','person','content','card','history','settings','recycle','new','login','register'];
-  const TABS = ['home','history','settings'];
-  const OVERVIEW_ORDER = ['home','person','content','card','history','settings','recycle','new','login'];
+  const SCREENS = ['home','contacts','person','content','card','history','settings','recycle','new','login','register'];
+  const TABS = ['home','contacts','history','settings'];
+  const OVERVIEW_ORDER = ['home','contacts','person','content','card','history','settings','recycle','new','login'];
   const STEPPER = { advance:{min:0,max:30,suffix:' 天'}, count:{min:1,max:5,suffix:' 条'} };
   let stack = ['home'];
 
@@ -752,7 +785,7 @@
       item.className = 'ov-item';
       const label = document.createElement('div');
       label.className = 'ov-label';
-      const names = {home:'首页',person:'对象页',content:'心意内容页',card:'贺卡页',history:'心意记录页',settings:'设置页',recycle:'回收站',new:'新增对象页',login:'登录页',register:'注册页'};
+      const names = {home:'提醒页',contacts:'联系人页',person:'对象页',content:'心意内容页',card:'贺卡页',history:'历史页',settings:'设置页',recycle:'回收站',new:'新增对象页',login:'登录页',register:'注册页'};
       label.textContent = names[id];
       const frame = document.createElement('div');
       frame.className = 'ov-frame';

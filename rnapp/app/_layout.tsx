@@ -2,12 +2,15 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../src/auth/AuthContext';
+import { SettingsProvider } from '../src/settings/SettingsContext';
 import { colors, fonts } from '../src/theme';
 
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootNavigator />
+      <SettingsProvider>
+        <RootNavigator />
+      </SettingsProvider>
     </AuthProvider>
   );
 }
@@ -49,6 +52,12 @@ function RootNavigator() {
           <Stack.Screen name="content/[id]" options={{ title: '心意内容页' }} />
           <Stack.Screen name="card/[id]" options={{ title: '电子贺卡' }} />
           <Stack.Screen name="recycle-bin" options={{ title: '回收站' }} />
+          <Stack.Screen name="settings/reminder" options={{ title: '提醒设置' }} />
+          <Stack.Screen name="settings/blessing" options={{ title: '祝福语设置' }} />
+          <Stack.Screen name="settings/gift" options={{ title: '礼物设置' }} />
+          <Stack.Screen name="settings/card" options={{ title: '贺卡设置' }} />
+          <Stack.Screen name="settings/festivals" options={{ title: '节日设置' }} />
+          <Stack.Screen name="settings/account" options={{ title: '账号管理' }} />
         </Stack.Protected>
 
         {/* 未登录时只显示登录页，且不可返回 */}
