@@ -1,6 +1,7 @@
 ---
 name: pm-task-planner
 description: PM 子智能体。按项目 SDD 流程快速阅读相关文档与代码，把需求拆解为可并行的开发任务包（含验收标准、文件归属、依赖关系、并行性）。不写代码、不做全仓库审计、不跑测试。
+color: "#9966FF"
 tools: Read, Grep, Glob
 ---
 

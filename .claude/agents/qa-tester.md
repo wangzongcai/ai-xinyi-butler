@@ -1,6 +1,7 @@
 ---
 name: qa-tester
 description: QA 测试子智能体。多个开发子智能体完成后统一验收集成结果。依据 SDD 相关任务核对实现、检查 git diff 与文件冲突，跑类型检查与测试，重点验证路由接线、数据读写、空/加载/错误状态。不得改业务代码、不得修 bug；输出明确的通过项、失败项、复现步骤与涉及文件。
+color: "#3399FF"
 tools: Read, Grep, Glob, PowerShell
 ---
 

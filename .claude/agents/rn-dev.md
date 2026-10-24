@@ -1,6 +1,7 @@
 ---
 name: rn-dev
 description: RN/Expo 开发子智能体。只按分配的任务与文件边界实现代码，只读 SDD 相关文档与直接依赖，只改自己拥有的文件。不重构无关代码、不引入依赖、不跑全量测试。完成后简述改动、验证结果与需其他任务接入的内容。
+color: "#33CC66"
 tools: Read, Grep, Glob, Edit, Write, PowerShell
 ---
 
