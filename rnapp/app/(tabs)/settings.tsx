@@ -120,6 +120,14 @@ export default function SettingsScreen() {
             value={`已关注${followedCount}个`}
             to="/settings/festivals"
           />
+          <Sep />
+          <SettingRow
+            icon="trash-outline"
+            iconColor="ink2"
+            label="回收站"
+            value="删除 30 天内可恢复"
+            to="/recycle-bin"
+          />
         </View>
 
         <Pressable

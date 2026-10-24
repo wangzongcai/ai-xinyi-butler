@@ -1,10 +1,10 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SettingBlock, Stepper } from '../../src/components/settings-ui';
+import { SettingBlock, Stepper, SwitchRow } from '../../src/components/settings-ui';
 import { useSettings } from '../../src/settings/SettingsContext';
 import { colors } from '../../src/theme';
 
 export default function ReminderSettingsScreen() {
-  const { remindDays, setRemindDays } = useSettings();
+  const { remindDays, setRemindDays, pushEnabled, setPushEnabled } = useSettings();
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -20,6 +20,17 @@ export default function ReminderSettingsScreen() {
 
       <SettingBlock label="推送时间" hint="第一版固定为每天早上 9 点，后续会支持自定义时间。">
         <Text style={styles.fixedTime}>09:00</Text>
+      </SettingBlock>
+
+      <SettingBlock
+        label="推送通知"
+        hint="开启后，到点会收到临近日子的提醒通知。第一版只保存在本地，不向系统申请通知权限。"
+      >
+        <SwitchRow
+          label="接收推送通知"
+          value={pushEnabled}
+          onChange={setPushEnabled}
+        />
       </SettingBlock>
     </ScrollView>
   );

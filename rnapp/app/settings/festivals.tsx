@@ -9,8 +9,14 @@ function FestivalRow({ festival }: { festival: Festival }) {
   return (
     <View style={styles.row}>
       <View style={styles.texts}>
-        <Text style={styles.name}>{festival.name}</Text>
-        {festival.note ? <Text style={styles.note}>{festival.note}</Text> : null}
+        <View style={styles.titleRow}>
+          <Text style={styles.name}>{festival.name}</Text>
+          {festival.type === 'targeted' ? <Text style={styles.tag}>指向性</Text> : null}
+        </View>
+        <Text style={styles.note}>{festival.calculationRule ?? festival.note}</Text>
+        {festival.note && festival.type === 'targeted' ? (
+          <Text style={styles.note}>{festival.note}</Text>
+        ) : null}
       </View>
       <Switch
         value={on}
@@ -76,7 +82,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   texts: { flex: 1 },
-  name: { fontSize: 15, color: colors.ink },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  name: { fontSize: 15, color: colors.ink, fontWeight: '600' },
+  tag: {
+    fontSize: 10,
+    color: colors.camelliaDeep,
+    backgroundColor: colors.camelliaTint,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
   note: { fontSize: 12, color: colors.ink3, marginTop: 2 },
   sep: { height: 1, backgroundColor: colors.line, marginLeft: 14 },
 });

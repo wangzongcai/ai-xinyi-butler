@@ -1,10 +1,27 @@
-import Placeholder from '../../src/components/Placeholder';
+import { router } from 'expo-router';
+import PersonForm, { type PersonFormValues } from '../../src/components/PersonForm';
+import { createPerson } from '../../src/data/personRepository';
+import { createAnniversary } from '../../src/data/anniversaryRepository';
+import { createTrait } from '../../src/data/traitRepository';
 
 export default function NewPersonScreen() {
-  return (
-    <Placeholder
-      title="新增对象页"
-      hint="这里将添加姓名、关系、生日，以及多个纪念日和特征（里程碑二实现）。"
-    />
-  );
+  async function handleSave({
+    name,
+    relationship,
+    birthday,
+    anniversaries,
+    traits,
+  }: PersonFormValues) {
+    // 先保存对象拿到 id，再逐个写纪念日与特征
+    const person = await createPerson({ name, relationship, birthday });
+    for (const a of anniversaries) {
+      await createAnniversary({ personId: person.id, name: a.name, date: a.date });
+    }
+    for (const t of traits) {
+      await createTrait({ personId: person.id, content: t.content });
+    }
+    router.back();
+  }
+
+  return <PersonForm onSubmit={handleSave} submitLabel="保存并添加" />;
 }
