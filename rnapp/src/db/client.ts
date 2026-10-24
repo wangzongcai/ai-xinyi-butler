@@ -6,8 +6,8 @@
 // =====================================================================
 import * as SQLite from 'expo-sqlite';
 
-// Metro 支持以 ?raw 后缀将纯文本文件以字符串导入，由此把建表脚本作为单一来源。
-import schemaSql from './schema.sql?raw';
+// 建表脚本以字符串常量维护，保持单一来源；Metro 不支持 ?raw 导入。
+import { SCHEMA_SQL } from './schema';
 
 // 数据库名。改动正式库结构前请升级该常量以触发 reinit，或走迁移脚本。
 export const DATABASE_NAME = 'xinyi_butler';
@@ -29,7 +29,7 @@ async function openDatabase(): Promise<SQLite.SQLiteDatabase> {
   const db = await SQLite.openDatabaseAsync(DATABASE_NAME);
   // 以事务执行建表脚本，保证多语句原子性与 settings 默认行写入一起生效。
   await db.withTransactionAsync(async () => {
-    await db.execAsync(schemaSql);
+    await db.execAsync(SCHEMA_SQL);
   });
   // 再次显式开启外键约束（确保连接级生效）。
   await db.execAsync('PRAGMA foreign_keys = ON;');

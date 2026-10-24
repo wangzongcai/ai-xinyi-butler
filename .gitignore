@@ -3,6 +3,10 @@
 
 # Expo Go 扫码预览图（本地生成，不入库）
 /expo-qr*.png
+/rnapp/expo-qr*.png
+
+# Expo 本地运行日志（不入库）
+/rnapp/expo.log
 
 # 系统文件
 .DS_Store
