@@ -1,17 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Alert, ActivityIndicator, Pressable } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { colors, fonts } from '../../src/theme';
 import { Person, getPerson, softDeletePerson } from '../../src/data/personRepository';
 import { Anniversary, listAnniversariesByPerson } from '../../src/data/anniversaryRepository';
 import { listTraitsByPerson } from '../../src/data/traitRepository';
-import { daysUntilNextOccurrenceOf } from '../../src/utils/nextOccurrence';
-
-// 「YYYY-MM-DD」→「M月D日」
-function formatMonthDay(dateStr: string): string {
-  const [, m, d] = dateStr.split('-').map(Number);
-  return `${m}月${d}日`;
-}
+import { formatMonthDay, nextOccurrenceDays } from '../../src/utils/calendar';
 
 type Data = {
   person: Person;
@@ -38,6 +32,8 @@ export default function PersonScreen() {
         setNotFound(true);
         return;
       }
+      // 从编辑页返回时数据可能已变化，重新聚焦即刷新
+      setNotFound(false);
       const [anniversaries, traits] = await Promise.all([
         listAnniversariesByPerson(id),
         listTraitsByPerson(id),
@@ -52,7 +48,8 @@ export default function PersonScreen() {
     };
   }, [id]);
 
-  useEffect(load, [load]);
+  // 每次回到本页（含从编辑页返回）都重读，避免显示旧数据
+  useFocusEffect(load);
 
   // 删除：二次确认，明示回收站的 30 天规则
   const handleDelete = useCallback(() => {
@@ -104,24 +101,7 @@ export default function PersonScreen() {
           ) : null}
         </View>
 
-        {/* 生日 */}
-        <View style={styles.card}>
-          <View style={styles.cardLabelRow}>
-            <Text style={styles.cardLabel}>生日</Text>
-          </View>
-          {person.birthday ? (
-            <View style={styles.cardRow}>
-              <Text style={styles.cardValue}>{formatMonthDay(person.birthday)}</Text>
-              <View style={styles.cardSide}>
-                <Text style={styles.pill}>{daysUntilNextOccurrenceOf(person.birthday)} 天后</Text>
-              </View>
-            </View>
-          ) : (
-            <Text style={styles.cardEmpty}>未填写</Text>
-          )}
-        </View>
-
-        {/* 纪念日 */}
+        {/* 纪念日（生日也在这里，由用户自己添加名为「生日」的一条） */}
         <View style={styles.card}>
           <View style={styles.cardLabelRow}>
             <Text style={styles.cardLabel}>纪念日</Text>
@@ -133,10 +113,10 @@ export default function PersonScreen() {
             anniversaries.map((a) => (
               <View key={a.id} style={styles.cardRow}>
                 <Text style={styles.cardValue}>
-                  {a.name}　{formatMonthDay(a.date)}
+                  {a.name}　{formatMonthDay(a.date, a.calendar)}
                 </Text>
                 <View style={styles.cardSide}>
-                  <Text style={styles.pill}>{daysUntilNextOccurrenceOf(a.date)} 天后</Text>
+                  <Text style={styles.pill}>{nextOccurrenceDays(a.date, a.calendar)} 天后</Text>
                 </View>
               </View>
             ))

@@ -6,7 +6,10 @@
 /rnapp/expo-qr*.png
 
 # Expo 本地运行日志（不入库）
+/expo.log
+/expo.err.log
 /rnapp/expo.log
+/rnapp/expo.err.log
 
 # 系统文件
 .DS_Store

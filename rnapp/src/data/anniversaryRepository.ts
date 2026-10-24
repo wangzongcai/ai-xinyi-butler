@@ -5,6 +5,7 @@
 // =====================================================================
 import { getDatabase } from '../db/client';
 import { uuid } from './uuid';
+import type { CalendarKind } from '../utils/calendar';
 
 export type Anniversary = {
   id: string;
@@ -12,8 +13,10 @@ export type Anniversary = {
   personId: string;
   /** 名称：用户自定义 */
   name: string;
-  /** 日期，YYYY-MM-DD */
+  /** 日期，MM-DD（每年重复） */
   date: string;
+  /** 日期的历法：公历 / 农历 */
+  calendar: CalendarKind;
   /** 创建时间 */
   createdAt: string;
   /** 更新时间 */
@@ -24,6 +27,8 @@ export type NewAnniversary = {
   personId: string;
   name: string;
   date: string;
+  /** 不传按公历 */
+  calendar?: CalendarKind;
 };
 
 type RawRow = {
@@ -31,6 +36,7 @@ type RawRow = {
   person_id: string;
   name: string;
   date: string;
+  calendar: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -41,6 +47,7 @@ function toModel(r: RawRow): Anniversary {
     personId: r.person_id,
     name: r.name,
     date: r.date,
+    calendar: r.calendar === 'lunar' ? 'lunar' : 'solar',
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -51,12 +58,14 @@ export async function createAnniversary(input: NewAnniversary): Promise<Annivers
   const db = await getDatabase();
   const now = new Date().toISOString();
   const id = uuid();
+  const calendar: CalendarKind = input.calendar === 'lunar' ? 'lunar' : 'solar';
   await db.runAsync(
-    'INSERT INTO anniversary (id, person_id, name, date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT INTO anniversary (id, person_id, name, date, calendar, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
     id,
     input.personId,
     input.name.trim(),
     input.date,
+    calendar,
     now,
     now,
   );
@@ -65,6 +74,7 @@ export async function createAnniversary(input: NewAnniversary): Promise<Annivers
     personId: input.personId,
     name: input.name.trim(),
     date: input.date,
+    calendar,
     createdAt: now,
     updatedAt: now,
   };
@@ -86,7 +96,7 @@ export async function listAnniversariesByPerson(personId: string): Promise<Anniv
  */
 export async function replaceAnniversaries(
   personId: string,
-  anniversaries: { id?: string; name: string; date: string }[],
+  anniversaries: { id?: string; name: string; date: string; calendar?: CalendarKind }[],
 ): Promise<Anniversary[]> {
   const db = await getDatabase();
   await db.runAsync('DELETE FROM anniversary WHERE person_id = ?', personId);
@@ -97,19 +107,24 @@ export async function replaceAnniversaries(
       const existing = await getAnniversary(personId, a.id);
       if (existing) {
         const now = new Date().toISOString();
+        const calendar: CalendarKind =
+          a.calendar !== undefined ? (a.calendar === 'lunar' ? 'lunar' : 'solar') : existing.calendar;
         await db.runAsync(
-          'UPDATE anniversary SET name = ?, date = ?, updated_at = ? WHERE id = ?',
+          'UPDATE anniversary SET name = ?, date = ?, calendar = ?, updated_at = ? WHERE id = ?',
           a.name.trim(),
           a.date,
+          calendar,
           now,
           a.id,
         );
-        created.push({ ...existing, name: a.name.trim(), date: a.date, updatedAt: now });
+        created.push({ ...existing, name: a.name.trim(), date: a.date, calendar, updatedAt: now });
         continue;
       }
       // id 失效则降级为新增
     }
-    created.push(await createAnniversary({ personId, name: a.name, date: a.date }));
+    created.push(
+      await createAnniversary({ personId, name: a.name, date: a.date, calendar: a.calendar }),
+    );
   }
   return created;
 }

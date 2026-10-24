@@ -1,8 +1,16 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors, fonts, radius } from '../../theme';
+import type { CalendarKind } from '../../utils/calendar';
+import DateField from '../DateField';
 
 /** 表单中的一条纪念日草稿；id 存在表示这是已有记录（编辑回填时才有） */
-export type AnniversaryDraft = { id?: string; name: string; date: string };
+export type AnniversaryDraft = {
+  id?: string;
+  name: string;
+  /** MM-DD */
+  date: string;
+  calendar: CalendarKind;
+};
 
 type Props = {
   value: AnniversaryDraft[];
@@ -12,7 +20,7 @@ type Props = {
 // 纪念日编辑器：可「＋添加一个纪念日」，每条有自定义名称 + 日期，可删除
 export default function AnniversariesEditor({ value, onChange }: Props) {
   function add() {
-    onChange([...value, { name: '', date: '' }]);
+    onChange([...value, { name: '', date: '', calendar: 'solar' }]);
   }
 
   function update(index: number, patch: Partial<AnniversaryDraft>) {
@@ -45,13 +53,13 @@ export default function AnniversariesEditor({ value, onChange }: Props) {
             placeholder="纪念日名称（如结婚纪念日）"
             placeholderTextColor={colors.ink3}
           />
-          <TextInput
-            style={styles.input}
+          <DateField
             value={item.date}
-            onChangeText={(t) => update(index, { date: t })}
-            placeholder="日期，如 2020-05-20"
-            placeholderTextColor={colors.ink3}
-            autoCorrect={false}
+            onChange={(date) => update(index, { date })}
+            calendar={item.calendar}
+            onCalendarChange={(calendar) => update(index, { calendar })}
+            placeholder="点击选择日期"
+            allowClear
           />
           <Pressable style={styles.del} onPress={() => remove(index)}>
             <Text style={styles.delText}>删除</Text>

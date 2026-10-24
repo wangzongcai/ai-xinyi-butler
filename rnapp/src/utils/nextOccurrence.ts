@@ -42,15 +42,8 @@ export function daysUntilNextOccurrence(
   return differenceInCalendarDays(nextYearTarget, today);
 }
 
-/**
- * 便捷版本：直接传 YYYY-MM-DD 或 Date，返回距今天数。
- * 适用于只有「单次日期」（如某纪念日已不是年度性）场景；若日期早于今天，
- * 按同样规则指向下一年。为与 spec「生日沿用今年/明年」一致，本函数也做年度推算。
- */
-export function daysUntilNextOccurrenceOf(dateStr: string, ref: Date = new Date()): number {
-  const d = new Date(dateStr + 'T00:00:00');
-  return daysUntilNextOccurrence(d.getMonth() + 1, d.getDate(), ref);
-}
+// 存储值 'MM-DD' 的倒计时请用 utils/calendar.ts 的 nextOccurrenceDays，
+// 它会在公历/农历之间分派；本文件只保留纯公历的月日计算。
 
 function startOfDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());

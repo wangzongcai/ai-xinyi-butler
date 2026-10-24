@@ -9,7 +9,9 @@ export const SCHEMA_SQL = `-- ==================================================
 -- 依据 data-model.md「三、表结构」。中文字段名与业务注释保持逐字一致。
 -- 说明：
 --   * 主键一律 TEXT 存 UUID（应用侧生成，参考 data-model 一.2）。
---   * 日期存 'YYYY-MM-DD'；带时间字段存 ISO 8601（strftime 生成 UTC 时间）。
+--   * 生日/纪念日只存「月-日」('MM-DD')，每年重复；另用日历列区分公历/农历。
+--     带时间字段存 ISO 8601（strftime 生成 UTC 时间）。history.date 例外，
+--     它记录某次具体日子，仍存 'YYYY-MM-DD'。
 --   * person 软删除（deleted_at 非空进回收站）；anniversary/trait 级联删除；
 --     history 在 person 物理删除时 person_id 置空、记录永久保留。
 --   * settings 为单行表（id 固定 'default'），预置默认行。
@@ -24,8 +26,10 @@ CREATE TABLE IF NOT EXISTS person (
   name TEXT NOT NULL,
   -- 关系：用户自由输入，不限预设选项
   relationship TEXT NOT NULL,
-  -- 生日：可空，允许创建不含日期的对象
+  -- 生日：历史列。生日已并入纪念日，旧值启动时迁移成「生日」纪念日后清空，新数据不再写入
   birthday TEXT,
+  -- 生日历法：历史列，仅迁移时使用
+  birthday_calendar TEXT NOT NULL DEFAULT 'solar',
   -- 删除时间：软删除标记，进回收站保留 30 天可恢复，超期彻底清除
   deleted_at TEXT,
   -- 创建时间
@@ -45,8 +49,10 @@ CREATE TABLE IF NOT EXISTS anniversary (
   person_id TEXT NOT NULL REFERENCES person (id) ON DELETE CASCADE,
   -- 名称：用户自定义（如「结婚纪念日」「相识五周年」）
   name TEXT NOT NULL,
-  -- 日期
+  -- 日期：只记「月-日」(MM-DD)，每年重复
   date TEXT NOT NULL,
+  -- 日期历法：solar 公历 / lunar 农历（第一版不支持闰月）
+  calendar TEXT NOT NULL DEFAULT 'solar',
   -- 创建时间
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   -- 更新时间

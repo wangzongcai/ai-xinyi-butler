@@ -20,7 +20,6 @@ import type { TraitDraft } from '../../../src/components/person/TraitsEditor';
 type Loaded = {
   name: string;
   relationship: string;
-  birthday: string | null;
   anniversaries: AnniversaryDraft[];
   traits: TraitDraft[];
 };
@@ -43,11 +42,11 @@ export default function EditPersonScreen() {
         setInitial({
           name: person.name,
           relationship: person.relationship,
-          birthday: person.birthday,
           anniversaries: anniversaries.map((a) => ({
             id: a.id,
             name: a.name,
             date: a.date,
+            calendar: a.calendar,
           })),
           traits: traits.map((t) => ({ id: t.id, content: t.content })),
         });
@@ -63,10 +62,10 @@ export default function EditPersonScreen() {
     };
   }, [id]);
 
-  async function handleSave({ name, relationship, birthday, anniversaries, traits }: PersonFormValues) {
+  async function handleSave({ name, relationship, anniversaries, traits }: PersonFormValues) {
     const personId = id;
-    // 1) 对象本身
-    await updatePerson(personId, { name, relationship, birthday });
+    // 1) 对象本身（生日已并入纪念日，不再写 person.birthday）
+    await updatePerson(personId, { name, relationship });
     // 2) 纪念日整体替换（含新增与已有）
     await replaceAnniversaries(personId, anniversaries);
     // 3) 特征同步：按 id 区分 新增 / 更新 / 删除
@@ -100,7 +99,6 @@ export default function EditPersonScreen() {
     <PersonForm
       initialName={initial.name}
       initialRelationship={initial.relationship}
-      initialBirthday={initial.birthday}
       initialAnniversaries={initial.anniversaries}
       initialTraits={initial.traits}
       onSubmit={handleSave}

@@ -42,7 +42,8 @@
 | id | id | TEXT → uuid | 是 | 应用生成 UUID | 主键 |
 | 姓名 | name | TEXT → text | 是 | — | |
 | 关系 | relationship | TEXT → text | 是 | — | 用户自由输入，不限预设选项（如家人、挚友、重要客户） |
-| 生日 | birthday | TEXT → date | 否 | NULL | 可为空；允许创建不含任何日期的对象 |
+| 生日 | birthday | TEXT → text | 否 | NULL | 历史列。生日已并入纪念日，旧值在启动迁移时转成名为「生日」的纪念日后清空，新数据不再写入 |
+| 生日历法 | birthday_calendar | TEXT → text | 是 | 'solar' | 历史列，仅迁移时使用；新数据看 anniversary.calendar |
 | 删除时间 | deleted_at | TEXT → timestamptz | 否 | NULL | 软删除标记：进回收站保留 30 天可恢复，超期彻底清除 |
 | 创建时间 | created_at | TEXT → timestamptz | 是 | 当前时间 | 审计字段 |
 | 更新时间 | updated_at | TEXT → timestamptz | 是 | 当前时间 | 审计字段 |
@@ -55,7 +56,8 @@
 | id | id | TEXT → uuid | 是 | 应用生成 UUID | 主键 |
 | 对象 id | person_id | TEXT → uuid | 是 | — | 外键 → person.id |
 | 名称 | name | TEXT → text | 是 | — | 用户自定义（如「结婚纪念日」「相识五周年」） |
-| 日期 | date | TEXT → date | 是 | — | |
+| 日期 | date | TEXT → text | 是 | — | `MM-DD`（零填充），只记月日、每年重复 |
+| 历法 | calendar | TEXT → text | 是 | 'solar' | `solar` 公历 / `lunar` 农历（第一版不支持闰月） |
 | 创建时间 | created_at | TEXT → timestamptz | 是 | 当前时间 | 审计字段（plan 未显式列出，按功能补充） |
 | 更新时间 | updated_at | TEXT → timestamptz | 是 | 当前时间 | 审计字段（plan 未显式列出，按功能补充） |
 

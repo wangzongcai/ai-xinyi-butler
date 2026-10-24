@@ -6,6 +6,7 @@
 // =====================================================================
 import { getDatabase } from '../db/client';
 import { uuid } from './uuid';
+import type { CalendarKind } from '../utils/calendar';
 
 const RECYCLE_DAYS = 30; // 回收站保留 30 天（data-model 一.4）
 
@@ -15,8 +16,10 @@ export type Person = {
   name: string;
   /** 与我的关系：用户自由输入 */
   relationship: string;
-  /** 生日，YYYY-MM-DD，可空 */
+  /** 生日，MM-DD（每年重复），可空 */
   birthday: string | null;
+  /** 生日的历法：公历 / 农历 */
+  birthdayCalendar: CalendarKind;
   /** 删除时间 ISO8601；null 表示未删除 */
   deletedAt: string | null;
   /** 创建时间 ISO8601 */
@@ -31,6 +34,8 @@ export type NewPerson = {
   name: string;
   relationship: string;
   birthday?: string | null;
+  /** 不传按公历 */
+  birthdayCalendar?: CalendarKind;
 };
 
 type RawRow = {
@@ -38,6 +43,7 @@ type RawRow = {
   name: string;
   relationship: string;
   birthday: string | null;
+  birthday_calendar: string | null;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -50,6 +56,7 @@ function toModel(r: RawRow): Person {
     name: r.name,
     relationship: r.relationship,
     birthday: r.birthday,
+    birthdayCalendar: r.birthday_calendar === 'lunar' ? 'lunar' : 'solar',
     deletedAt: r.deleted_at,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
@@ -65,16 +72,30 @@ export async function createPerson(input: NewPerson): Promise<Person> {
   const now = new Date().toISOString();
   const id = uuid();
   const birthday = input.birthday?.trim() ? input.birthday.trim() : null;
+  const birthdayCalendar: CalendarKind = input.birthdayCalendar === 'lunar' ? 'lunar' : 'solar';
   await db.runAsync(
-    'INSERT INTO person (id, name, relationship, birthday, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT INTO person (id, name, relationship, birthday, birthday_calendar, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
     id,
     input.name.trim(),
     input.relationship.trim(),
     birthday,
+    birthdayCalendar,
     now,
     now,
   );
-  return { ...toModel({ id, name: input.name.trim(), relationship: input.relationship.trim(), birthday, deleted_at: null, created_at: now, updated_at: now, user_id: null }) };
+  return {
+    ...toModel({
+      id,
+      name: input.name.trim(),
+      relationship: input.relationship.trim(),
+      birthday,
+      birthday_calendar: birthdayCalendar,
+      deleted_at: null,
+      created_at: now,
+      updated_at: now,
+      user_id: null,
+    }),
+  };
 }
 
 /**
@@ -105,7 +126,12 @@ export async function listPersons(): Promise<Person[]> {
  */
 export async function updatePerson(
   id: string,
-  input: { name?: string; relationship?: string; birthday?: string | null },
+  input: {
+    name?: string;
+    relationship?: string;
+    birthday?: string | null;
+    birthdayCalendar?: CalendarKind;
+  },
 ): Promise<Person> {
   const db = await getDatabase();
   const now = new Date().toISOString();
@@ -121,12 +147,19 @@ export async function updatePerson(
         ? input.birthday.trim()
         : null
       : existing.birthday;
+  const birthdayCalendar: CalendarKind =
+    input.birthdayCalendar !== undefined
+      ? input.birthdayCalendar === 'lunar'
+        ? 'lunar'
+        : 'solar'
+      : existing.birthdayCalendar;
 
   await db.runAsync(
-    'UPDATE person SET name = ?, relationship = ?, birthday = ?, updated_at = ? WHERE id = ?',
+    'UPDATE person SET name = ?, relationship = ?, birthday = ?, birthday_calendar = ?, updated_at = ? WHERE id = ?',
     name,
     relationship,
     birthday,
+    birthdayCalendar,
     now,
     id,
   );
@@ -135,6 +168,7 @@ export async function updatePerson(
     name,
     relationship,
     birthday,
+    birthdayCalendar,
     updatedAt: now,
   };
 }

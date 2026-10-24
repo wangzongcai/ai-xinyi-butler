@@ -1,58 +1,63 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import PageHeader from '../../src/components/PageHeader';
 import { colors, fonts } from '../../src/theme';
 import { Person, listPersons } from '../../src/data/personRepository';
 import { listAnniversariesByPerson } from '../../src/data/anniversaryRepository';
-import { daysUntilNextOccurrenceOf } from '../../src/utils/nextOccurrence';
+import { CalendarKind, formatMonthDay, nextOccurrenceDays } from '../../src/utils/calendar';
 
-// 联系人行数据：对象 + 其「最近日子」（距今天数最小的一项）
-type Row = {
-  person: Person;
-  /** 最近一次纪念日；无任何纪念日时为 null（不显示倒计时） */
-  nearest: { name: string; date: string; days: number } | null;
+// 联系人行数据：对象 + 其所有的纪念日（生日也按纪念日记录）
+type RowDay = {
+  name: string;
+  date: string;
+  calendar: CalendarKind;
+  days: number;
 };
 
-// 把「YYYY-MM-DD」格式化为「M月D日」
-function formatMonthDay(dateStr: string): string {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  void y;
-  return `${m}月${d}日`;
-}
+type Row = {
+  person: Person;
+  days: RowDay[]; // 该对象的所有纪念日列表
+};
 
 export default function ContactsScreen() {
   const [rows, setRows] = useState<Row[] | null>(null);
 
-  // 异步加载：列出全部未删除对象，并为每个对象算最近日子倒计时
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const persons = await listPersons();
-      const result = await Promise.all(
-        persons.map(async (person) => {
-          const anniversaries = await listAnniversariesByPerson(person.id);
-          // 「最近日子」从 生日(若填) + 各纪念日 的下一次发生里取距今天数最小者
-          let best: Row['nearest'] = null;
-          const consider = (name: string, date: string): void => {
-            const days = daysUntilNextOccurrenceOf(date);
-            if (!best || days < best.days) {
-              best = { name, date, days };
+  // 异步加载：列出全部未删除对象，并为每个对象算所有日子的倒计时。
+  // 用 useFocusEffect 而非 useEffect：Tab 页常驻不卸载，只在挂载时读库
+  // 会导致新增/删除对象后回到本页仍显示旧数据。重新聚焦时静默刷新，不清空列表。
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        const persons = await listPersons();
+        const result = await Promise.all(
+          persons.map(async (person) => {
+            const anniversaries = await listAnniversariesByPerson(person.id);
+            // 收集所有重要日子：全部来自纪念日（生日也已按纪念日记录）
+            const days: RowDay[] = [];
+            for (const a of anniversaries) {
+              days.push({
+                name: a.name,
+                date: a.date,
+                calendar: a.calendar,
+                days: nextOccurrenceDays(a.date, a.calendar),
+              });
             }
-          };
-          if (person.birthday) consider('生日', person.birthday);
-          for (const a of anniversaries) consider(a.name, a.date);
-          return { person, nearest: best };
-        }),
-      );
-      if (!cancelled) setRows(result);
-    })().catch(() => {
-      if (!cancelled) setRows([]);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+            // 按天数排序：最近的放前面
+            days.sort((a, b) => a.days - b.days);
+            return { person, days };
+          }),
+        );
+        if (!cancelled) setRows(result);
+      })().catch(() => {
+        if (!cancelled) setRows([]);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, []),
+  );
 
   const loading = rows === null;
 
@@ -79,26 +84,36 @@ export default function ContactsScreen() {
           </View>
         ) : (
           <View style={styles.list}>
-            {rows.map(({ person, nearest }) => (
+            {rows.map(({ person, days }) => (
               <Pressable
                 key={person.id}
                 style={styles.row}
                 onPress={() => router.push(`/person/${person.id}`)}
               >
-                <View>
-                  <Text style={styles.rowName}>{person.name}</Text>
-                  <Text style={styles.rowMeta}>
-                    {person.relationship}
-                    {nearest ? ` ， ${nearest.name} ${formatMonthDay(nearest.date)}` : ''}
+                <View style={styles.rowMain}>
+                  <Text style={styles.rowName}>
+                    {person.name}
+                    {person.relationship ? (
+                      <Text style={styles.rowRelation}>　{person.relationship}</Text>
+                    ) : null}
                   </Text>
+                  {days.length > 0 ? (
+                    <View style={styles.daysList}>
+                      {days.map((d, idx) => (
+                        <View key={idx} style={styles.dayRow}>
+                          <Text style={styles.dayLabel} numberOfLines={1}>
+                            {d.name} · {formatMonthDay(d.date, d.calendar)}
+                          </Text>
+                          <Text style={[styles.dayCount, d.days === 0 && styles.dayCountToday]}>
+                            {d.days === 0 ? '今天' : `还有 ${d.days} 天`}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.rowMeta}>暂无纪念日</Text>
+                  )}
                 </View>
-                {nearest ? (
-                  <View style={styles.rowSide}>
-                    <Text style={[styles.pill, nearest.days === 0 && styles.pillWarm]}>
-                      {nearest.days === 0 ? '今天' : `${nearest.days} 天`}
-                    </Text>
-                  </View>
-                ) : null}
               </Pressable>
             ))}
             <Pressable style={styles.row} onPress={() => router.push('/person/new')}>
@@ -131,19 +146,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
+  rowMain: { flex: 1 },
   rowName: { fontFamily: fonts.hand, fontSize: 18, color: colors.ink },
-  rowMeta: { fontSize: 12.5, color: colors.ink2 },
-  rowSide: { marginLeft: 'auto', alignItems: 'flex-end' },
-  pill: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 999,
-    fontSize: 12,
-    backgroundColor: colors.roseTint,
-    color: colors.camelliaDeep,
-    overflow: 'hidden',
+  rowRelation: { fontFamily: fonts.ui, fontSize: 12.5, color: colors.ink2 },
+  daysList: { flexDirection: 'column', gap: 4, marginTop: 4 },
+  dayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
   },
-  pillWarm: { backgroundColor: colors.camelliaTint, color: '#8F4E55' },
+  dayLabel: { fontSize: 12.5, color: colors.ink2, flexShrink: 1 },
+  dayCount: { fontSize: 12, color: colors.camelliaDeep },
+  dayCountToday: { color: '#8F4E55', fontWeight: '600' },
+  rowMeta: { fontSize: 12.5, color: colors.ink2 },
   rowAdd: { color: colors.camellia, fontSize: 14 },
   plus: { fontSize: 18, marginRight: 6 },
 });
