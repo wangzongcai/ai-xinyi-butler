@@ -20,6 +20,14 @@ export default function NewPersonScreen() {
     for (const t of traits) {
       await createTrait({ personId: person.id, content: t.content });
     }
+    // 新增的日子必须立刻重排：否则要等下次进入前台才排期，期间既不推送、也写不进心意记录。
+    // 这里等重排完成再返回，避免用户马上去看历史页时记录还没写进去。
+    try {
+      const { rescheduleAll } = await import('../../src/notifications/scheduler');
+      await rescheduleAll();
+    } catch {
+      // 重排失败不影响对象保存本身，下次启动/回前台会再排
+    }
     router.back();
   }
 

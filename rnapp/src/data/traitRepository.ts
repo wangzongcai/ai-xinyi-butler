@@ -5,6 +5,8 @@
 // 未来 Supabase 实现保留同一方法签名。
 // =====================================================================
 import { getDatabase } from '../db/client';
+import { withWriteTransaction } from '../db/tx';
+import { enqueue } from '../sync/outbox';
 import { uuid } from './uuid';
 
 export const TRAIT_MAX_PER_PERSON = 10;
@@ -55,25 +57,27 @@ export function assertTraitContentValid(content: string): void {
 /** 新增特征；先校验条数与长度，超限抛错并拒绝写入。 */
 export async function createTrait(input: NewTrait): Promise<Trait> {
   assertTraitContentValid(input.content);
-  const db = await getDatabase();
   const now = new Date().toISOString();
   const id = uuid();
-  // 写入前再次计数校验，防止并发/漏校验导致超 10 条
-  const countRow = await db.getFirstAsync<{ c: number }>(
-    'SELECT COUNT(*) AS c FROM trait WHERE person_id = ?',
-    input.personId,
-  );
-  if ((countRow?.c ?? 0) >= TRAIT_MAX_PER_PERSON) {
-    throw new Error(`每个对象最多 ${TRAIT_MAX_PER_PERSON} 条特征`);
-  }
-  await db.runAsync(
-    'INSERT INTO trait (id, person_id, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
-    id,
-    input.personId,
-    input.content.trim(),
-    now,
-    now,
-  );
+  await withWriteTransaction(async (txn) => {
+    // 写入前再次计数校验，防止并发/漏校验导致超 10 条
+    const countRow = await txn.getFirstAsync<{ c: number }>(
+      'SELECT COUNT(*) AS c FROM trait WHERE person_id = ?',
+      input.personId,
+    );
+    if ((countRow?.c ?? 0) >= TRAIT_MAX_PER_PERSON) {
+      throw new Error(`每个对象最多 ${TRAIT_MAX_PER_PERSON} 条特征`);
+    }
+    await txn.runAsync(
+      'INSERT INTO trait (id, person_id, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+      id,
+      input.personId,
+      input.content.trim(),
+      now,
+      now,
+    );
+    await enqueue(txn, 'trait', id);
+  });
   return {
     id,
     personId: input.personId,
@@ -96,18 +100,22 @@ export async function listTraitsByPerson(personId: string): Promise<Trait[]> {
 /** 更新单条特征；校验长度。 */
 export async function updateTrait(id: string, content: string): Promise<void> {
   assertTraitContentValid(content);
-  const db = await getDatabase();
   const now = new Date().toISOString();
-  await db.runAsync(
-    'UPDATE trait SET content = ?, updated_at = ? WHERE id = ?',
-    content.trim(),
-    now,
-    id,
-  );
+  await withWriteTransaction(async (txn) => {
+    await txn.runAsync(
+      'UPDATE trait SET content = ?, updated_at = ? WHERE id = ?',
+      content.trim(),
+      now,
+      id,
+    );
+    await enqueue(txn, 'trait', id);
+  });
 }
 
 /** 删除单条特征 */
 export async function deleteTrait(personId: string, id: string): Promise<void> {
-  const db = await getDatabase();
-  await db.runAsync('DELETE FROM trait WHERE id = ? AND person_id = ?', id, personId);
+  await withWriteTransaction(async (txn) => {
+    await txn.runAsync('DELETE FROM trait WHERE id = ? AND person_id = ?', id, personId);
+    await enqueue(txn, 'trait', id);
+  });
 }

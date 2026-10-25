@@ -5,6 +5,8 @@
 // 未来 Supabase 实现保留同一方法签名（data-model 七.5 迁移路径）。
 // =====================================================================
 import { getDatabase } from '../db/client';
+import { withWriteTransaction } from '../db/tx';
+import { enqueue } from '../sync/outbox';
 import { uuid } from './uuid';
 import type { CalendarKind } from '../utils/calendar';
 
@@ -68,21 +70,24 @@ function toModel(r: RawRow): Person {
  * 新增对象。只填姓名也可保存（birthday 可空）。返回完整 Person（含 id）。
  */
 export async function createPerson(input: NewPerson): Promise<Person> {
-  const db = await getDatabase();
   const now = new Date().toISOString();
   const id = uuid();
   const birthday = input.birthday?.trim() ? input.birthday.trim() : null;
   const birthdayCalendar: CalendarKind = input.birthdayCalendar === 'lunar' ? 'lunar' : 'solar';
-  await db.runAsync(
-    'INSERT INTO person (id, name, relationship, birthday, birthday_calendar, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    id,
-    input.name.trim(),
-    input.relationship.trim(),
-    birthday,
-    birthdayCalendar,
-    now,
-    now,
-  );
+  // 写库与入同步队列同一事务：崩溃也不会出现「本地有、云端不知道」
+  await withWriteTransaction(async (txn) => {
+    await txn.runAsync(
+      'INSERT INTO person (id, name, relationship, birthday, birthday_calendar, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      id,
+      input.name.trim(),
+      input.relationship.trim(),
+      birthday,
+      birthdayCalendar,
+      now,
+      now,
+    );
+    await enqueue(txn, 'person', id);
+  });
   return {
     ...toModel({
       id,
@@ -133,7 +138,6 @@ export async function updatePerson(
     birthdayCalendar?: CalendarKind;
   },
 ): Promise<Person> {
-  const db = await getDatabase();
   const now = new Date().toISOString();
   const existing = await getPerson(id);
   if (!existing) throw new Error('对象不存在或已删除');
@@ -154,15 +158,18 @@ export async function updatePerson(
         : 'solar'
       : existing.birthdayCalendar;
 
-  await db.runAsync(
-    'UPDATE person SET name = ?, relationship = ?, birthday = ?, birthday_calendar = ?, updated_at = ? WHERE id = ?',
-    name,
-    relationship,
-    birthday,
-    birthdayCalendar,
-    now,
-    id,
-  );
+  await withWriteTransaction(async (txn) => {
+    await txn.runAsync(
+      'UPDATE person SET name = ?, relationship = ?, birthday = ?, birthday_calendar = ?, updated_at = ? WHERE id = ?',
+      name,
+      relationship,
+      birthday,
+      birthdayCalendar,
+      now,
+      id,
+    );
+    await enqueue(txn, 'person', id);
+  });
   return {
     ...existing,
     name,
@@ -177,27 +184,31 @@ export async function updatePerson(
  * 软删除：deleted_at 置当前时间。对象进入回收站保留 30 天，期间数据完整保留。
  */
 export async function softDeletePerson(id: string): Promise<void> {
-  const db = await getDatabase();
   const now = new Date().toISOString();
-  await db.runAsync(
-    'UPDATE person SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL',
-    now,
-    now,
-    id,
-  );
+  await withWriteTransaction(async (txn) => {
+    await txn.runAsync(
+      'UPDATE person SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL',
+      now,
+      now,
+      id,
+    );
+    await enqueue(txn, 'person', id);
+  });
 }
 
 /**
  * 恢复回收站对象：清除 deleted_at。
  */
 export async function restorePerson(id: string): Promise<void> {
-  const db = await getDatabase();
   const now = new Date().toISOString();
-  await db.runAsync(
-    'UPDATE person SET deleted_at = NULL, updated_at = ? WHERE id = ?',
-    now,
-    id,
-  );
+  await withWriteTransaction(async (txn) => {
+    await txn.runAsync(
+      'UPDATE person SET deleted_at = NULL, updated_at = ? WHERE id = ?',
+      now,
+      id,
+    );
+    await enqueue(txn, 'person', id);
+  });
 }
 
 /**
@@ -208,8 +219,9 @@ export async function listRecycledPersons(): Promise<
   (Person & { remainingDays: number })[]
 > {
   const db = await getDatabase();
+  // 时间统一用 ISO 格式（datetime('now') 返回空格分隔，与 deleted_at 的 'T' 比较会错位一天）
   const rows = await db.getAllAsync<RawRow>(
-    "SELECT * FROM person WHERE deleted_at IS NOT NULL AND deleted_at >= datetime('now', ?) ORDER BY deleted_at DESC",
+    "SELECT * FROM person WHERE deleted_at IS NOT NULL AND deleted_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now', ?) ORDER BY deleted_at DESC",
     `-${RECYCLE_DAYS} days`,
   );
   return rows.map((r) => {
@@ -220,12 +232,56 @@ export async function listRecycledPersons(): Promise<
 }
 
 /**
+ * 在本地记墓碑：彻底删除是终态，必须在本机也记下来。
+ * 否则推送尚未到达云端时，一次 pull 就会把云端旧行重新拉回本地。
+ * 子表（anniversary / trait）随外键级联被删，也要各自记墓碑。
+ */
+async function writeLocalTombstones(
+  txn: import('expo-sqlite').SQLiteDatabase,
+  personId: string,
+): Promise<void> {
+  const now = new Date().toISOString();
+  const children = await txn.getAllAsync<{ table_name: string; id: string }>(
+    `SELECT 'anniversary' AS table_name, id FROM anniversary WHERE person_id = ?
+     UNION ALL
+     SELECT 'trait' AS table_name, id FROM trait WHERE person_id = ?
+     UNION ALL
+     SELECT 'gift' AS table_name, id FROM gift_suggestion WHERE person_id = ?`,
+    personId,
+    personId,
+    personId,
+  );
+  const rows: { table: string; id: string }[] = [
+    { table: 'person', id: personId },
+    ...children.map((c) => ({ table: c.table_name, id: c.id })),
+  ];
+  for (const row of rows) {
+    await txn.runAsync(
+      'INSERT OR IGNORE INTO sync_tombstone (table_name, row_id, deleted_at) VALUES (?, ?, ?)',
+      row.table,
+      row.id,
+      now,
+    );
+    // 这些行已不存在，未推送的改动也没意义了
+    await txn.runAsync(
+      'DELETE FROM sync_outbox WHERE table_name = ? AND row_id = ?',
+      row.table,
+      row.id,
+    );
+  }
+}
+
+/**
  * 彻底清除：物理删除对象及其 anniversary / trait（外键 CASCADE 自动级联），
  * history 的 person_id 由 ON DELETE SET NULL 置空、记录保留。
  */
 export async function hardDeletePerson(id: string): Promise<void> {
-  const db = await getDatabase();
-  await db.runAsync('DELETE FROM person WHERE id = ?', id);
+  await withWriteTransaction(async (txn) => {
+    // 先记墓碑（含待级联的子表），再删；服务端 DELETE 会级联并自动为子表写墓碑
+    await writeLocalTombstones(txn, id);
+    await txn.runAsync('DELETE FROM person WHERE id = ?', id);
+    await enqueue(txn, 'person', id);
+  });
 }
 
 /**
@@ -233,14 +289,17 @@ export async function hardDeletePerson(id: string): Promise<void> {
  * 返回本次彻底清除的对象 id 列表；供级联历史置空确认。
  */
 export async function purgeExpiredRecycled(): Promise<string[]> {
-  const db = await getDatabase();
-  const rows = await db.getAllAsync<{ id: string }>(
-    "SELECT id FROM person WHERE deleted_at IS NOT NULL AND deleted_at < datetime('now', ?)",
-    `-${RECYCLE_DAYS} days`,
-  );
-  const ids = rows.map((r) => r.id);
-  for (const id of ids) {
-    await hardDeletePerson(id);
-  }
-  return ids;
+  return withWriteTransaction(async (txn) => {
+    const rows = await txn.getAllAsync<{ id: string }>(
+      "SELECT id FROM person WHERE deleted_at IS NOT NULL AND deleted_at < strftime('%Y-%m-%dT%H:%M:%fZ','now', ?)",
+      `-${RECYCLE_DAYS} days`,
+    );
+    const ids = rows.map((r) => r.id);
+    for (const id of ids) {
+      await writeLocalTombstones(txn, id);
+      await txn.runAsync('DELETE FROM person WHERE id = ?', id);
+      await enqueue(txn, 'person', id);
+    }
+    return ids;
+  });
 }

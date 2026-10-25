@@ -9,7 +9,9 @@ import {
 } from 'react';
 import { AppState } from 'react-native';
 import type { Session, User } from '@supabase/supabase-js';
+import { deleteDatabaseAsync } from 'expo-sqlite';
 import { resetPasswordUrl, supabase } from './supabase';
+import { clearActiveUser, dbNameFor } from '../db/client';
 import { accountFromUser } from './account';
 import { clearAuthCache, loadAuthCache, saveAuthCache, type CachedAccount } from '../data/authCache';
 
@@ -157,12 +159,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const deleteAccount = useCallback(async () => {
+    const uid = session?.user?.id;
     // Edge Function 会校验当前用户 JWT，只允许删除自己的账号
     const { error } = await supabase.functions.invoke('delete-account');
     if (error) throw error;
     const { error: signOutError } = await supabase.auth.signOut();
     if (signOutError) throw signOutError;
-  }, []);
+    // 注销不可撤销：云端业务数据已随账号级联删除，本机这一账号的库也一并清掉
+    if (uid) {
+      try {
+        await clearActiveUser();
+        await deleteDatabaseAsync(dbNameFor(uid));
+      } catch {
+        // 清理本机库失败不影响注销结果
+      }
+    }
+  }, [session?.user?.id]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

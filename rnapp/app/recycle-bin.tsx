@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Pressable } from 'react-native';
 import { colors, fonts } from '../src/theme';
 import PageHeader from '../src/components/PageHeader';
+import { useSync } from '../src/sync/SyncContext';
 import {
   listRecycledPersons,
   restorePerson,
@@ -17,6 +18,8 @@ type Row = {
 
 export default function RecycleBinScreen() {
   const [rows, setRows] = useState<Row[] | null>(null);
+  // 远端数据（含墓碑）落库后 dataVersion 自增，本页随之重读
+  const { dataVersion } = useSync();
 
   const load = useCallback(() => {
     let cancelled = false;
@@ -40,15 +43,25 @@ export default function RecycleBinScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+    // dataVersion 在回调体内不参与计算，只作为「远端数据已落库」的触发信号
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataVersion]);
 
   useEffect(load, [load]);
 
-  // 恢复：清理后重新加载列表
+  // 恢复：重排提醒（恢复的对象要重新排期 / 补写心意记录），再刷新列表
   const handleRestore = useCallback(
     (id: string) => {
       restorePerson(id)
-        .then(load)
+        .then(async () => {
+          try {
+            const { rescheduleAll } = await import('../src/notifications/scheduler');
+            await rescheduleAll();
+          } catch {
+            // 重排失败不影响恢复本身
+          }
+          await load();
+        })
         .catch(() => {});
     },
     [load],

@@ -1,16 +1,16 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
-import { Segmented, SettingBlock } from '../../src/components/settings-ui';
+import { Segmented, SettingBlock, SwitchRow } from '../../src/components/settings-ui';
 import { useSettings } from '../../src/settings/SettingsContext';
 import { colors } from '../../src/theme';
 
 export default function GiftSettingsScreen() {
-  const { platform, setPlatform } = useSettings();
+  const { platform, setPlatform, giftEnabled, setGiftEnabled } = useSettings();
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <SettingBlock
         label="礼物建议数量"
-        hint="每次进入心意内容页，固定生成 4 条与对方特征相关的礼物建议，第一版不可调。"
+        hint="每次进入心意准备页，固定生成 4 条与对方特征相关的礼物建议，第一版不可调。"
       >
         <Text style={styles.fixed}>固定 4 条</Text>
       </SettingBlock>
@@ -27,6 +27,13 @@ export default function GiftSettingsScreen() {
           value={platform}
           onChange={setPlatform}
         />
+      </SettingBlock>
+
+      <SettingBlock
+        label="礼物建议区域"
+        hint="关闭后，心意准备页将不再展示礼物建议，也不发起礼物生成请求。"
+      >
+        <SwitchRow label="启用礼物建议" value={giftEnabled} onChange={setGiftEnabled} />
       </SettingBlock>
     </ScrollView>
   );

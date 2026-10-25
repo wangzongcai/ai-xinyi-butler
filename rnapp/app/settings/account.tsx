@@ -18,7 +18,7 @@ export default function AccountSettingsScreen() {
   const [busy, setBusy] = useState(false);
 
   function handleSignOut() {
-    Alert.alert('退出登录', '退出后需要重新登录才能使用，本机心意数据不会删除。', [
+    Alert.alert('退出登录', '退出后需要重新登录才能使用。本机缓存不会删除，重新登录后继续同步。', [
       { text: '取消', style: 'cancel' },
       {
         text: '退出',
@@ -40,7 +40,7 @@ export default function AccountSettingsScreen() {
   function handleDeleteAccount() {
     Alert.alert(
       '注销账号',
-      '将永久删除这个登录账号，此操作无法撤销。本机心意数据不会被删除，但退出登录后需要重新登录才能查看。',
+      '将永久删除这个登录账号，云端与本机的心意数据都会一并删除，此操作无法撤销。',
       [
         { text: '取消', style: 'cancel' },
         {

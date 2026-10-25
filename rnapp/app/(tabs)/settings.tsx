@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import PageHeader from '../../src/components/PageHeader';
 import { useSettings } from '../../src/settings/SettingsContext';
+import { useSync } from '../../src/sync/SyncContext';
 import { colors, fonts } from '../../src/theme';
 
 type IconColor = 'camellia' | 'teal' | 'gold' | 'ink2';
@@ -48,6 +49,7 @@ function Sep() {
 export default function SettingsScreen() {
   const {
     remindDays,
+    remindTimeText,
     pushEnabled,
     setPushEnabled,
     blessingCount,
@@ -55,6 +57,19 @@ export default function SettingsScreen() {
     cardSignature,
     followedCount,
   } = useSettings();
+  const { phase, pending } = useSync();
+
+  // 入口右侧状态：待同步条数优先，其次同步中/离线
+  const syncLabel =
+    pending > 0
+      ? `待同步${pending}条`
+      : phase === 'syncing'
+        ? '同步中…'
+        : phase === 'offline'
+          ? '离线'
+          : phase === 'error'
+            ? '同步异常'
+            : '已同步';
 
   return (
     <View style={styles.screen}>
@@ -66,7 +81,7 @@ export default function SettingsScreen() {
             icon="alarm-outline"
             iconColor="camellia"
             label="提醒设置"
-            value={`提前${remindDays}天 · 09:00`}
+            value={`提前${remindDays}天 · ${remindTimeText}`}
             to="/settings/reminder"
           />
           <Sep />
@@ -114,6 +129,14 @@ export default function SettingsScreen() {
         <Text style={styles.groupTitle}>通用</Text>
         <View style={styles.group}>
           <SettingRow
+            icon="cloud-done-outline"
+            iconColor="teal"
+            label="云同步"
+            value={syncLabel}
+            to="/settings/sync"
+          />
+          <Sep />
+          <SettingRow
             icon="calendar-outline"
             iconColor="camellia"
             label="节日设置"
@@ -143,7 +166,9 @@ export default function SettingsScreen() {
           </View>
         </Pressable>
 
-        <Text style={styles.footnote}>心意数据仍只存在这台设备，不会随账号上传。</Text>
+        <Text style={styles.footnote}>
+          心意数据会随账号加密同步到云端，换机或重装后登录即可恢复；本机保留一份缓存，离线也能正常使用。
+        </Text>
       </ScrollView>
     </View>
   );

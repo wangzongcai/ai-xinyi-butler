@@ -17,7 +17,11 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.xiaokang0103.aixinyibutler",
+      "permissions": [
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -26,7 +30,24 @@
       "expo-router",
       "expo-status-bar",
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#FE6D73",
+          "defaultChannel": "default"
+        }
+      ],
+      "expo-sharing",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "允许「心意管家」访问照片，用于保存你生成的电子贺卡。",
+          "savePhotosPermission": "允许「心意管家」将电子贺卡保存到系统相册。",
+          "isAccessMediaLocationEnabled": false,
+          "granularPermissions": ["photo"]
+        }
+      ]
     ]
   }
 }

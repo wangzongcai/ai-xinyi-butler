@@ -1,6 +1,8 @@
 // delete-account：删除当前登录用户自己的账号
 // 调用方必须携带用户自己的 JWT（Authorization: Bearer <access_token>）。
-// 业务数据（心意对象等）都在本机，服务端只删 auth.users 里的身份。
+// 云端业务数据（person / anniversary / trait / history / prepare_record /
+// user_settings / sync_tombstone）全部通过 user_id 外键 ON DELETE CASCADE 挂在
+// auth.users 上，删身份即一并清除；本机对应的账号库由客户端在退出后自行删除。
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "@supabase/server";
 

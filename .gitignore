@@ -11,6 +11,12 @@
 /rnapp/expo.log
 /rnapp/expo.err.log
 
+# 出图测试产物（本地生成，不入库）
+/test_pic/
+
+# 本机截图 / 模拟器日志（测试过程产物，不入库）
+/.tmp-shots/
+
 # 系统文件
 .DS_Store
 Thumbs.db

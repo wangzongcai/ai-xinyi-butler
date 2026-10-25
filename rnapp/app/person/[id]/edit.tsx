@@ -83,7 +83,14 @@ export default function EditPersonScreen() {
         await createTrait({ personId, content: t.content });
       }
     }
-    // 4) 回对象页
+    // 4) 日子可能新增 / 改期 / 删除，立即重排（推送与心意记录都依赖这次重排）
+    try {
+      const { rescheduleAll } = await import('../../../src/notifications/scheduler');
+      await rescheduleAll();
+    } catch {
+      // 重排失败不影响保存，下次启动/回前台会再排
+    }
+    // 5) 回对象页
     router.replace(`/person/${personId}`);
   }
 

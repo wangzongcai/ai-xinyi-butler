@@ -139,3 +139,20 @@ export function nextOccurrenceDays(
   if (calendar === 'lunar') return lunarDaysUntil(md.month, md.day, ref);
   return daysUntilNextOccurrence(md.month, md.day, ref);
 }
+
+/**
+ * 存储值 'MM-DD' 对应的「下一次发生」日期（当天 0 点）。
+ * 用 nextOccurrenceDays 的天数累加得到，保证排期锚点与界面倒计时完全一致
+ * （含农历换算、2/29 非闰年夹回等边界）。供 M6 本地通知排期使用。
+ */
+export function nextOccurrenceDate(
+  value: string,
+  calendar: CalendarKind = 'solar',
+  ref: Date = new Date(),
+): Date | null {
+  const md = parseMonthDay(value, calendar);
+  if (!md) return null;
+  const days = nextOccurrenceDays(value, calendar, ref);
+  const today = startOfDay(ref);
+  return new Date(today.getTime() + days * 86400000);
+}

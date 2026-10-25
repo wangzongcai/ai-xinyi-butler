@@ -6,6 +6,7 @@ import { colors, fonts } from '../../src/theme';
 import { Person, listPersons } from '../../src/data/personRepository';
 import { listAnniversariesByPerson } from '../../src/data/anniversaryRepository';
 import { CalendarKind, formatMonthDay, nextOccurrenceDays } from '../../src/utils/calendar';
+import { useSync } from '../../src/sync/SyncContext';
 
 // 联系人行数据：对象 + 其所有的纪念日（生日也按纪念日记录）
 type RowDay = {
@@ -22,6 +23,8 @@ type Row = {
 
 export default function ContactsScreen() {
   const [rows, setRows] = useState<Row[] | null>(null);
+  // 远端数据落库后 dataVersion 自增，本页随之重读
+  const { dataVersion } = useSync();
 
   // 异步加载：列出全部未删除对象，并为每个对象算所有日子的倒计时。
   // 用 useFocusEffect 而非 useEffect：Tab 页常驻不卸载，只在挂载时读库
@@ -56,7 +59,9 @@ export default function ContactsScreen() {
       return () => {
         cancelled = true;
       };
-    }, []),
+      // dataVersion 在回调体内不参与计算，只作为「远端数据已落库」的触发信号
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dataVersion]),
   );
 
   const loading = rows === null;

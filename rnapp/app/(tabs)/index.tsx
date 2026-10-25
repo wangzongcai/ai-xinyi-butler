@@ -5,13 +5,14 @@
 // 通知权限关闭时保留「近日心意」作为备用入口（本页本身就是该入口）。
 // =====================================================================
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import PageHeader from '../../src/components/PageHeader';
 import { colors, fonts, radius } from '../../src/theme';
 import { listPersons } from '../../src/data/personRepository';
 import { listAnniversariesByPerson } from '../../src/data/anniversaryRepository';
 import { useSettings } from '../../src/settings/SettingsContext';
+import { useSync } from '../../src/sync/SyncContext';
 import { FESTIVALS, festivalDate, type Festival } from '../../src/settings/festivals';
 import { formatMonthDay, nextOccurrenceDays } from '../../src/utils/calendar';
 
@@ -82,6 +83,8 @@ function countdownText(days: number): string {
 
 export default function ReminderScreen() {
   const { followedFestivals, followedCount, pushEnabled } = useSettings();
+  // 远端数据落库后 dataVersion 自增，本页随之重读
+  const { dataVersion } = useSync();
   // null = 加载中；用 useFocusEffect 保证从对象页/设置页返回时数据是最新的
   const [personDays, setPersonDays] = useState<PersonDay[] | null>(null);
 
@@ -114,7 +117,9 @@ export default function ReminderScreen() {
       return () => {
         cancelled = true;
       };
-    }, []),
+      // dataVersion 在回调体内不参与计算，只作为「远端数据已落库」的触发信号
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dataVersion]),
   );
 
   // 已关注的节日 → 下次发生日期与倒计时（与设置页的开关实时同步）
@@ -143,18 +148,21 @@ export default function ReminderScreen() {
       title: string;
       subtitle: string;
       personId: string | null;
+      festivalId: string | null;
     }[] = [
       ...personDays.map((d) => ({
         days: d.days,
         title: `${d.personName}的${d.dayName}`,
         subtitle: d.dateText,
         personId: d.personId,
+        festivalId: null,
       })),
       ...festivalDays.map((d) => ({
         days: d.days,
         title: d.name,
         subtitle: d.dateText,
         personId: null,
+        festivalId: d.id,
       })),
     ];
     candidates.sort((a, b) => a.days - b.days);
@@ -178,10 +186,16 @@ export default function ReminderScreen() {
             </View>
             <Text style={styles.pcMain}>{nearest.title}</Text>
             <Text style={styles.pcSub}>{nearest.subtitle} · 把祝福、礼物和贺卡都提前备好</Text>
-            {nearest.personId ? (
+            {nearest.personId || nearest.festivalId ? (
               <Pressable
                 style={[styles.btnPine, { marginTop: 16 }]}
-                onPress={() => router.push(`/person/${nearest.personId}`)}
+                onPress={() =>
+                  nearest.personId
+                    ? router.push(`/person/${nearest.personId}`)
+                    : nearest.festivalId
+                      ? router.push(`/prepare/holiday/${nearest.festivalId}`)
+                      : undefined
+                }
               >
                 <Text style={styles.btnPineText}>去准备</Text>
               </Pressable>
@@ -234,7 +248,11 @@ export default function ReminderScreen() {
         ) : (
           <View style={styles.list}>
             {festivalDays.map((d) => (
-              <View key={d.id} style={styles.cardRow}>
+              <Pressable
+                key={d.id}
+                style={styles.cardRow}
+                onPress={() => router.push(`/prepare/holiday/${d.id}`)}
+              >
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>{initial(d.name)}</Text>
                 </View>
@@ -248,7 +266,7 @@ export default function ReminderScreen() {
                 <Text style={[styles.pill, d.days === 0 && styles.pillToday]}>
                   {countdownText(d.days)}
                 </Text>
-              </View>
+              </Pressable>
             ))}
           </View>
         )}
@@ -259,9 +277,9 @@ export default function ReminderScreen() {
             <Text style={styles.bannerTxt}>通知没开，早上九点我就提醒不到你了。</Text>
             <Pressable
               style={[styles.btnPine, styles.btnSmall]}
-              onPress={() => router.push('/settings/reminder')}
+              onPress={() => void Linking.openSettings()} // 已拒绝 → 引导去系统设置开启
             >
-              <Text style={styles.btnPineText}>打开通知</Text>
+              <Text style={styles.btnPineText}>去设置</Text>
             </Pressable>
           </View>
         ) : null}

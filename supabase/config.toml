@@ -66,7 +66,8 @@ schema_paths = []
 
 [db.seed]
 # If enabled, seeds the database after migrations during a db reset.
-enabled = true
+# 本项目没有 seed 脚本，关闭以免 db reset 因找不到 ./seed.sql 报错。
+enabled = false
 # Specifies an ordered list of seed files to load during db reset.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
 sql_paths = ["./seed.sql"]
@@ -431,3 +432,21 @@ entrypoint = "./functions/delete-account/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/delete-account/*.html" ]
+
+[functions.generate-card-image]
+enabled = true
+verify_jwt = true
+import_map = "./functions/generate-card-image/deno.json"
+entrypoint = "./functions/generate-card-image/index.ts"
+
+[functions.generate-blessings]
+enabled = true
+verify_jwt = true
+import_map = "./functions/generate-blessings/deno.json"
+entrypoint = "./functions/generate-blessings/index.ts"
+
+[functions.generate-gifts]
+enabled = true
+verify_jwt = true
+import_map = "./functions/generate-gifts/deno.json"
+entrypoint = "./functions/generate-gifts/index.ts"

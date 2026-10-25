@@ -85,6 +85,56 @@ const stepperStyles = StyleSheet.create({
   value: { minWidth: 56, textAlign: 'center', fontSize: 17, fontWeight: '600', color: colors.ink },
 });
 
+// 时间步进器：小时上下加减 1，分钟上下加减 5（纯 JS，免装原生日期选择器）
+export function TimeStepper({
+  hour,
+  minute,
+  onChange,
+}: {
+  hour: number;
+  minute: number;
+  onChange: (hour: number, minute: number) => void;
+}) {
+  const pad = (n: number) => `${n}`.padStart(2, '0');
+  const stepHour = (delta: number) => onChange((hour + delta + 24) % 24, minute);
+  // 分钟按 5 分钟一档，越过两端就夹住，不自动进位（避免误触改到小时）
+  const stepMinute = (delta: number) => onChange(hour, Math.max(0, Math.min(59, minute + delta)));
+  return (
+    <View style={timeStyles.row}>
+      <View style={timeStyles.col}>
+        <Pressable style={timeStyles.arrow} onPress={() => stepHour(1)} hitSlop={8}>
+          <Ionicons name="chevron-up" size={20} color={colors.camellia} />
+        </Pressable>
+        <Text style={timeStyles.num}>{pad(hour)}</Text>
+        <Pressable style={timeStyles.arrow} onPress={() => stepHour(-1)} hitSlop={8}>
+          <Ionicons name="chevron-down" size={20} color={colors.camellia} />
+        </Pressable>
+        <Text style={timeStyles.unit}>时</Text>
+      </View>
+      <Text style={timeStyles.colon}>:</Text>
+      <View style={timeStyles.col}>
+        <Pressable style={timeStyles.arrow} onPress={() => stepMinute(5)} hitSlop={8}>
+          <Ionicons name="chevron-up" size={20} color={colors.camellia} />
+        </Pressable>
+        <Text style={timeStyles.num}>{pad(minute)}</Text>
+        <Pressable style={timeStyles.arrow} onPress={() => stepMinute(-5)} hitSlop={8}>
+          <Ionicons name="chevron-down" size={20} color={colors.camellia} />
+        </Pressable>
+        <Text style={timeStyles.unit}>分</Text>
+      </View>
+    </View>
+  );
+}
+
+const timeStyles = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 4 },
+  col: { alignItems: 'center' },
+  arrow: { paddingHorizontal: 10, paddingVertical: 2 },
+  num: { fontSize: 28, fontWeight: '700', color: colors.camelliaDeep, minWidth: 52, textAlign: 'center' },
+  colon: { fontSize: 26, fontWeight: '700', color: colors.ink2, marginBottom: 14 },
+  unit: { fontSize: 11, color: colors.ink3, marginTop: 2 },
+});
+
 // 分段选择
 export function Segmented<T extends string>({
   options,
